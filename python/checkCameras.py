@@ -10,7 +10,12 @@ cv2.namedWindow('frame')
 # Create a trackbar for setting the exposure manually
 def setCapExposure(x):
     cap.set(15, x)
-cv2.createTrackbar('exposure', 'frame', 1, 531, setCapExposure)
+
+def setCapGain(x):
+    cap.set(14, x)
+
+cv2.createTrackbar('Shutter', 'frame', 1, 531, setCapExposure)
+cv2.createTrackbar('Gain', 'frame', 1, 531, setCapExposure)
 
 # fd feature detector. Note the high value is just for display
 fd = cv2.ORB()
