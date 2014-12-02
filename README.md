@@ -16,3 +16,15 @@ Note on installation. Make sure you're using OpenCV 2.4.9
 Another helpful utility is Coriander, which is like cheese but for 1394 cameras
 
     sudo apt-get install coriander
+
+Running
+-------
+
+To make it so you can run scripts as not root, do
+
+    lsusb
+    sudo chmod 666 /dev/bus/usb/002/001
+
+Where 002 and 001 are replaced by the Bus and Device from lsusb. Then, you can run the script by doing
+
+    python collectData.py fullrange.yaml
