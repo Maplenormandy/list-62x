@@ -38,7 +38,7 @@ cap = cv2.VideoCapture(0)
 cv2.namedWindow('frame')
 
 # fd feature detector. Note the high value is just for display
-fd = cv2.ORB()
+fd = cv2.ORB(nfeatures=2000)
 
 t = 0
 
