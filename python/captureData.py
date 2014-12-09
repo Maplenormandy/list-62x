@@ -38,15 +38,17 @@ cap = cv2.VideoCapture(0)
 cv2.namedWindow('frame')
 
 # fd feature detector. Note the high value is just for display
-fd = cv2.ORB(nfeatures=2000)
+fd = cv2.SURF(400)
 
 t = 0
+i = 0
 
 if cap.isOpened():
     cap.set(15, shutters[0])
     cap.set(14, gains[0])
 
     while True:
+        start = time.time()
         ret, frame = cap.read()
 
         if ret:
@@ -56,23 +58,30 @@ if cap.isOpened():
             kp = fd.detect(frame, None)
             disp = cv2.drawKeypoints(frame, kp, None, (255,0,0), 4)
 
-            # Record data
-            timestamps[t] = currentTimestamp()
-            features[t] = len(kp)
-            shutters[t] = cap.get(15)
-            gains[t] = cap.get(14)
+            if i == 0:
+                # Record data
+                timestamps[t] = currentTimestamp()
+                features[t] = len(kp)
+                shutters[t] = cap.get(15)
+                gains[t] = cap.get(14)
+                t += 1
 
             cv2.imshow('frame', disp)
 
-            t += 1
 
         if t >= totalFrames:
             break
-        elif t < totalFrames - 1:
+        elif t < totalFrames - 1 and i == 0:
             cap.set(15, shutters[t+1])
             cap.set(14, gains[t+1])
+            i = 1
+        elif i < 5:
+            i += 1
+        else:
+            i = 0
 
-        if cv2.waitKey(30) & 0xFF == ord('q'):
+        dt = time.time() - start
+        if cv2.waitKey(max(int(33-(dt*1000)),1)) & 0xFF == ord('q'):
             break
 
 # Put the data back into a dataframe
