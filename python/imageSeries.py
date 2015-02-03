@@ -14,15 +14,17 @@ def setCapExposure(x):
 def setCapGain(x):
     cap.set(14, x)
 
-cv2.createTrackbar('Shutter', 'frame', 1, 531, setCapExposure)
-cv2.createTrackbar('Gain', 'frame', 16, 64, setCapGain)
-
 # fd feature detector. Note the high value is just for display
 fd = cv2.SURF(400)
 
 t = 0.0;
 
+expo = 50
+i = 0
+
 if cap.isOpened():
+    setCapExposure(expo)
+
     while True:
         ret, frame = cap.read()
 
@@ -30,13 +32,20 @@ if cap.isOpened():
             # Convert the camera from bayer format to RGB
             frame = cv2.cvtColor(frame, cv2.COLOR_BAYER_BG2BGR);
 
-            # Use fd feature detector
-            #kp = fd.detect(frame, None)
-            #disp = cv2.drawKeypoints(frame, kp, None, (255,0,0), 4)
-
             cv2.imshow('frame', frame)
+            if i == 5:
+                cv2.imwrite('./image_' + str(expo) + '.png', frame)
 
-        # Try setting the camera settings
+        if i < 5:
+            i += 1
+        else:
+            i = 0
+            expo += 50
+            if expo < 500:
+                setCapExposure(expo)
+            else:
+                break
+
 
 
         t += 0.030;
