@@ -29,7 +29,7 @@
 #include <unistd.h>
 #endif
 
-#define IMAGE_FILE_NAME "image.pgm"
+uint8_t * rgb;
 
 /*-----------------------------------------------------------------------
  *  Releases the cameras and exits
@@ -39,6 +39,7 @@ void cleanup_and_exit(dc1394camera_t *camera)
     dc1394_video_set_transmission(camera, DC1394_OFF);
     dc1394_capture_stop(camera);
     dc1394_camera_free(camera);
+    free(rgb);
     exit(1);
 }
 
@@ -88,16 +89,12 @@ int main(int argc, char *argv[])
     err=dc1394_video_get_supported_modes(camera,&video_modes);
     DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Can't get video modes");
 
-    // select highest res mode:
-    video_mode = DC1394_VIDEO_MODE_640x480_MONO8;
+    video_mode = DC1394_VIDEO_MODE_FORMAT7_0;
 
     err=dc1394_get_color_coding_from_video_mode(camera, video_mode,&coding);
     DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Could not get color coding");
 
-    // get highest framerate
-    err=dc1394_video_get_supported_framerates(camera,video_mode,&framerates);
-    DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Could not get framrates");
-    framerate=DC1394_FRAMERATE_30;
+    framerate=DC1394_FRAMERATE_15;
 
     /*-----------------------------------------------------------------------
      *  setup capture
@@ -114,6 +111,13 @@ int main(int argc, char *argv[])
 
     err=dc1394_capture_setup(camera,4, DC1394_CAPTURE_FLAGS_DEFAULT);
     DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Could not setup camera-\nmake sure that the video mode and framerate are\nsupported by your camera");
+    
+    dc1394_get_image_size_from_video_mode(camera, video_mode, &width, &height);
+    rgb = (uint8_t*) malloc(width*height);
+
+    err=dc1394_feature_set_value(camera, DC1394_FEATURE_SHUTTER, 240);
+    DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Couldn't set shutter");
+
 
     /*-----------------------------------------------------------------------
      *  report camera's features
@@ -132,17 +136,50 @@ int main(int argc, char *argv[])
     err=dc1394_video_set_transmission(camera, DC1394_ON);
     DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Could not start camera iso transmission");
 
-    /*-----------------------------------------------------------------------
-     *  capture one frame
-     *-----------------------------------------------------------------------*/
-    err=dc1394_capture_dequeue(camera, DC1394_CAPTURE_POLICY_WAIT, &frame);
-    DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Could not capture a frame");
+    int j = 0;
+    for (j = 0; j < 20; ++j) {
+        /*-----------------------------------------------------------------------
+         *  capture one frame
+         *-----------------------------------------------------------------------*/
+        err=dc1394_capture_dequeue(camera, DC1394_CAPTURE_POLICY_WAIT, &frame);
+        DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Could not capture a frame");
 
-    /*
-     * Debayer stuff
-     * */
-    err=dc1394_bayer_decoding_8bit(frame, dest, width, height, DC1394_COLOR_FILTER_RGGB, DC1394_BAYER_METHOD_BILINEAR);
-    DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Debayer broke");
+        /*
+         * Debayer stuff
+         * */
+        err=dc1394_bayer_decoding_8bit(frame->image, rgb, width, height, DC1394_COLOR_FILTER_RGGB, DC1394_BAYER_METHOD_BILINEAR);
+        DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Debayer broke");
+
+        /*-----------------------------------------------------------------------
+         *  save image as 'Image.pgm'
+         *-----------------------------------------------------------------------*/
+        char image_file_name[50];
+        sprintf(image_file_name, "image_%d.ppm", j);
+
+        imagefile=fopen(image_file_name, "wb");
+
+        if( imagefile == NULL) {
+            char errmsg[50];
+            sprintf(errmsg, "Can't create '%s'", image_file_name);
+            perror(errmsg);
+            cleanup_and_exit(camera);
+        }
+
+        fprintf(imagefile,"P6\n%u %u 255\n", width, height);
+        fwrite(rgb, 1, height*width, imagefile);
+        fclose(imagefile);
+        printf("wrote: %s\n", image_file_name);
+
+        err=dc1394_capture_enqueue(camera, frame);
+        DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Could not capture a frame");
+
+        if (j == 5) {
+            err=dc1394_feature_set_value(camera, DC1394_FEATURE_SHUTTER, 1);
+            DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Couldn't set shutter");
+        }
+
+    }
+
 
     /*-----------------------------------------------------------------------
      *  stop data transmission
@@ -150,21 +187,6 @@ int main(int argc, char *argv[])
     err=dc1394_video_set_transmission(camera,DC1394_OFF);
     DC1394_ERR_CLN_RTN(err,cleanup_and_exit(camera),"Could not stop the camera");
 
-    /*-----------------------------------------------------------------------
-     *  save image as 'Image.pgm'
-     *-----------------------------------------------------------------------*/
-    imagefile=fopen(IMAGE_FILE_NAME, "wb");
-
-    if( imagefile == NULL) {
-        perror( "Can't create '" IMAGE_FILE_NAME "'");
-        cleanup_and_exit(camera);
-    }
-
-    dc1394_get_image_size_from_video_mode(camera, video_mode, &width, &height);
-    fprintf(imagefile,"P5\n%u %u 255\n", width, height);
-    fwrite(frame->image, 1, height*width, imagefile);
-    fclose(imagefile);
-    printf("wrote: " IMAGE_FILE_NAME "\n");
 
     /*-----------------------------------------------------------------------
      *  close camera
@@ -173,6 +195,7 @@ int main(int argc, char *argv[])
     dc1394_capture_stop(camera);
     dc1394_camera_free(camera);
     dc1394_free (d);
+    free(rgb);
 
     return 0;
 }
