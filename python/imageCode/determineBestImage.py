@@ -13,7 +13,8 @@ grayImages=[]
 matchImageQualities = []
 bestImage = None
 maxPrecision = 0
-imgKeypoints=[]
+imgKeypoints = []
+imgBrightness = []
 
 
 def usableMatch(matches, keypoints):
@@ -47,12 +48,12 @@ sift = cv2.SIFT()
 # feature detection on baseline image
 keypointsBaseline,descriptorsBaseline = sift.detectAndCompute(baselineGray, None)
 baseline = cv2.drawKeypoints(baselineGray,keypointsBaseline)
-
+baselineBrightness = cv2.adaptiveThreshold(baselineGray,255,cv2.ADAPTIVE_THRESH_MEAN_C,\
+            cv2.THRESH_BINARY,11,2).mean() 
 cv2.imwrite('sift_baseline.png', baseline)
 
 # creating brute force feature matcher object
 bf = cv2.BFMatcher()
-
 # performing feature detection on all the other images and matching with baseline
 for c in range(0, len(grayImages)):
 	keypoints, descriptors = sift.detectAndCompute(grayImages[c], None)
@@ -60,7 +61,10 @@ for c in range(0, len(grayImages)):
 	matches = bf.knnMatch(descriptorsBaseline,descriptors, k=2)
 	efficiency = usableMatch(matches, keypoints)
 	matchImageQualities.append(efficiency)
-	# print str(c)+ "length of "+str(len(descriptors))
+	brightnessVal = cv2.adaptiveThreshold(grayImages[c],255,cv2.ADAPTIVE_THRESH_MEAN_C,\
+            cv2.THRESH_BINARY,11,2).mean()
+	# print str(c)+ "length of "+str(brightnessVal)
+	imgBrightness.append(brightnessVal)
 	img = cv2.drawKeypoints(grayImages[c], keypoints)
 	cv2.imwrite("image_"+str(c)+".png", img)
 	
