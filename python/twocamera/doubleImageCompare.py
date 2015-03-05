@@ -28,10 +28,12 @@ def setCap0Gain(x):
 def setCap1Gain(x):
     cap1.set(14,x)
 
+"""
 cv2.createTrackbar('Shutter Baseline', 'frame', 1, 531, setCap0Exposure)
 cv2.createTrackbar('Gain Baseline', 'frame', 16, 64, setCap0Gain)
 cv2.createTrackbar('Shutter Compared', 'frame', 1, 531, setCap1Exposure)
 cv2.createTrackbar('Gain Compared', 'frame', 16, 64, setCap1Gain)
+"""
 
 def surfDetectAndMatch(q, dq):
     surf = cv2.SURF(400)
@@ -77,16 +79,15 @@ def surfDetectAndMatch(q, dq):
                     # The implementation I'm using apparently "doesn't handle horizontal and vertical lines"
                     listOfLines.append(((kp0Pt[0],kp0Pt[1]+kp0Pt[0]),(kp1Pt[0]+w,kp1Pt[1]+kp1Pt[0]+w)))
 
-            if len(listOfLines) > 0:
-                featureIntersections = intersection(listOfLines)
-                dq.put((disp, len(featureIntersections)))
-            else:
-                dq.put((disp, 0))
+            dq.put((disp, len(listOfLines)))
         else:
             dq.put((disp, 0))
 
 
     print "Done"
+
+vcr = cv2.VideoWriter("demo.mpg", cv2.cv.CV_FOURCC('P','I','M','1'), 30, (640*2,480))
+writing = False
 
 if cap0.isOpened():
     q = Queue()
@@ -94,10 +95,12 @@ if cap0.isOpened():
     p = Process(target=surfDetectAndMatch, args=(q,dq,))
     p.start()
 
+    """
     cv2.setTrackbarPos('Shutter Baseline', 'frame', int(cap0.get(15)))
     cv2.setTrackbarPos('Gain Baseline', 'frame', int(cap0.get(14)))
     cv2.setTrackbarPos('Shutter Compared', 'frame', int(cap1.get(15)))
     cv2.setTrackbarPos('Gain Compared', 'frame', int(cap1.get(14)))
+    """
 
     i = 4
 
@@ -132,13 +135,27 @@ if cap0.isOpened():
 
         try:
             disp, numIntersections = dq.get_nowait()
-            cv2.putText(disp, "Intersections: " + str(numIntersections), (50,50), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+            cv2.putText(disp, "Matched Features: " + str(numIntersections), (50,50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255))
             cv2.imshow('frame', disp)
+            if writing:
+                vcr.write(disp)
+                vcr.write(disp)
+                vcr.write(disp)
+                vcr.write(disp)
+                vcr.write(disp)
+                vcr.write(disp)
+                vcr.write(disp)
+                vcr.write(disp)
+                vcr.write(disp)
+                vcr.write(disp)
         except Empty:
             pass
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
             break
+        elif key == ord('w'):
+            writing = True
 
     q.close()
     dq.close()
