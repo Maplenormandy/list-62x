@@ -16,6 +16,7 @@ from sklearn import datasets, linear_model
 # '2015-02-22TNQ_1/2015-02-22TNQ_0_0000.png
 global images
 global grayImages
+
 def prepData(folder, pictureStartString, start, end):
 	images = []
 	grayImages=[]
@@ -23,9 +24,6 @@ def prepData(folder, pictureStartString, start, end):
 	for a in range(start,end):
 		picString = folder+pictureStartString+formatNumber(a)+".png"
 		if (os.path.exists(picString)):
-		
-			# print picString
-			# print images
 			images.append(cv2.imread(picString))
 			grayImages.append(cv2.cvtColor(cv2.imread(picString), cv2.COLOR_BGR2GRAY))
 		else:
@@ -48,7 +46,7 @@ def formatNumber(x):
 # adding all color images to array
 # array of all images except baseline
 
-def runAlgorithm(grayImgs):
+def findBaseline(grayImgs):
 	imgKeypoints = []
 	imgDescriptors=[]
 	precisionValues=[]
@@ -57,8 +55,15 @@ def runAlgorithm(grayImgs):
 	# using feature detector orb -  could change to sift or surf if necessary.
 	sift = cv2.SURF()
 	# feature detection on baseline image
-	# creating brute force feature matcher object
-	bf = cv2.BFMatcher()
+	# # creating brute force feature matcher object
+	#  = cv2.BFMatcher()
+	# FLANN parameters
+	FLANN_INDEX_KDTREE = 0
+	index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+	search_params = dict(checks=50)   # or pass empty dictionary
+
+	flann = cv2.FlannBasedMatcher(index_params,search_params)
+
 	# performing feature detection on all the other images and matching with baseline
 	maxKeypoints = 0 
 	baselinePosition = 0
@@ -79,15 +84,14 @@ def runAlgorithm(grayImgs):
 	print "baseline picture is "+str(baselinePosition)
 	print "it has "+ str(maxKeypoints)+" features"
 
-	return baselinePosition,leftRight,sift,bf
+	return baselinePosition,leftRight,sift,flann
 
-def findBestMatch(baselinePos, startVal, endVal, grayImages,sift,bf, leftRight):
+def findBestMatch(baselinePos, startVal, endVal, grayImages,sift,flann, leftRight):
 	if endVal<startVal or endVal>len(grayImages[0]):
 		print "Error - Incorrect function call"
 		return
 	keypointsBaseline,descriptorsBaseline = sift.detectAndCompute(grayImages[leftRight][baselinePos], None)
-	baselineBrightness = cv2.adaptiveThreshold(grayImages[leftRight][baselinePos],255,cv2.ADAPTIVE_THRESH_MEAN_C,\
-	            cv2.THRESH_BINARY,11,2).mean() 
+	baselineBrightness = cv2.mean(grayImages[leftRight][baselinePos])[0]
 
 	matchImageQualities=[]
 	imgBrightness=[]
@@ -100,25 +104,23 @@ def findBestMatch(baselinePos, startVal, endVal, grayImages,sift,bf, leftRight):
 		for c in range(startVal, endVal):
 				keypoints,descriptors = sift.detectAndCompute(grayImages[b][c],None)
 				if descriptors!= None and descriptorsBaseline!=None:
-					matches = bf.knnMatch(descriptorsBaseline,descriptors, k=2)
-					efficiency = usableMatch(matches, keypoints)
+					matches = flann.knnMatch(descriptorsBaseline,descriptors,k=2)
+					efficiency = usableMatch(matches, keypoints, keypointsBaseline)
 					matchQuals.append(efficiency)
-					brightnessVal = cv2.adaptiveThreshold(grayImages[b][c],255,cv2.ADAPTIVE_THRESH_MEAN_C,\
-				            cv2.THRESH_BINARY,11,2).mean()
+					brightnessVal = cv2.mean(grayImages[b][c])[0]
 					# print str(c)+ "length of "+str(brightnessVal)
 					brightList.append(brightnessVal)
 				else:
 					brightList.append(0)
-					matchQuals.append([[],0])
+					matchQuals.append([0,0])
 		matchImageQualities.append(matchQuals)
 		imgBrightness.append(brightList)
-	#print matchImageQualities
 	side=0
 	for e in range(0, len(matchImageQualities)):
 		prec=[]
 		for d in range(0, len(matchImageQualities[e])):
 			if (matchImageQualities[e][d][1]>1):
-				precision  = float(len(matchImageQualities[e][d][0]))/float(matchImageQualities[e][d][1])
+				precision  = float(matchImageQualities[e][d][0])/float(matchImageQualities[e][d][1])
 			else:
 				precision = 0
 			prec.append(precision)
@@ -128,41 +130,60 @@ def findBestMatch(baselinePos, startVal, endVal, grayImages,sift,bf, leftRight):
 				bestImage = d+startVal
 		precisionValues.append(prec)
 	print str(bestImage)+" is best image on side "+str(side)
-	bestBrightness = baselineBrightness = cv2.adaptiveThreshold(grayImages[side][bestImage],255,cv2.ADAPTIVE_THRESH_MEAN_C,\
-	            cv2.THRESH_BINARY,11,2).mean() 
+	bestBrightness = cv2.mean(grayImages[side][bestImage])[0]
 	return bestImage,side, bestBrightness,baselineBrightness
 
 
-def usableMatch(matches, keypoints):
+
+def usableMatch(matches, keypoints, keypointsBaseline):
 	correctMatches = []
+	minAmmount = 5
+	srcPts=[]
+	dstPts=[]
 	for m,n in matches:
 		if m.distance <.75*n.distance:
-			correctMatches.append([m])
-	efficiency = [correctMatches, len(keypoints)]
+			correctMatches.append(m)
+	# for m in correctMatches:
+	# 	print "entered"
+	# 	print 
+	# 	dstPts.append(np.float32([keypoints[m.trainIdx].pt]))
+	# 	srcPts.append(np.float32([keypointsBaseline[m.queryIdx].pt]))
+
+	if len(correctMatches)>minAmmount:
+		dst_pts = np.float32([ keypoints[m.trainIdx].pt for m in correctMatches ])
+		src_pts = np.float32([ keypointsBaseline[m.queryIdx].pt for m in correctMatches ])
+		ransacMatches, mask= cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+		matchesMask = mask.ravel().tolist()
+		
+		matchesMask = np.array(matchesMask)
+		numMatches = (matchesMask>.5).sum()
+		efficiency = [numMatches, len(keypoints)]
+	else:
+		efficiency = [0, len(keypoints)]
 	return efficiency
 
-#using sci-kit learn library
-def leastSquaresRegression(dataX, dataY):
-	# # Create linear regression object
-	# regression = linear_model.LinearRegression()
+# def filter_matches(kp1, kp2, matches, ratio = 0.75):
+#     """
+#     Keep only matches that have distance ratio to 
+#     second closest point less than 'ratio'.
+#     """
+#     mkp1, mkp2 = [], []
+#     for m in matches:
+#         if m[0].distance < m[1].distance * ratio:
+#             m = m[0]
+#             mkp1.append( kp1[m.queryIdx] )
+#             mkp2.append( kp2[m.trainIdx] )
+#     p1 = np.float32([kp.pt for kp in mkp1])
+#     p2 = np.float32([kp.pt for kp in mkp2])
+#     kp_pairs = zip(mkp1, mkp2)
+#     return p1, p2, kp_pairs
 
-	# # Train the model using the training sets
-	# regression.fit(dataX, dataY)
-
-	# # The coefficients
-	# print('Coefficients: \n', regression.coef_)
-
-	# # Plot outputs
-	# plt.scatter(dataX, dataY,  color='black')
-	# plt.plot(dataX, regr.predict(dataX), color='blue',linewidth=3)
-
-	# plt.xticks(())
-	# plt.yticks(())
-
-	# plt.show()
-	data = getCameraSettingsData('optimalPoints.csv')
-	X = data[['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1']]
-	Y = data['Shutter 1']
+#using statsmodels.api library
+def leastSquaresRegression(fileName, optParam,dependParam, Xparam):
+	
+	data = getCameraSettingsData(fileName)
+	X = data[dependParam]
+	Y = data[optParam]
 	data.head()
 	X = sm.add_constant(X)
 	est = sm.OLS(Y,X).fit()
@@ -174,26 +195,24 @@ def leastSquaresRegression(dataX, dataY):
 
 	fig, ax = plt.subplots(figsize=(8,6))
 
-	ax.plot(X['Illumination 1'], Y, 'o', label="Training Data")
-	ax.plot(X['Illumination 1'], est.fittedvalues, 'r--.', label="Least Squares")
+	ax.plot(X[Xparam], Y, 'o', label="Training Data")
+	ax.plot(X[Xparam], est.fittedvalues, 'r--.', label="Least Squares")
 	ax.legend(loc='best')
 	plt.suptitle("Regression for Predicted Shutter Speed")
-	plt.ylabel('Difference of Shutter Speed')
-	plt.xlabel('Difference of Illumination Value')
+	plt.ylabel('Predicted Shutter Speed')
+	plt.xlabel('Mean Brightness of Best Image')
 	plt.show()
 	return est.summary()
 def getCameraSettingsData(fileName):
-	locString = fileName
-	df = pd.read_csv(locString)
+	df = pd.read_csv(fileName)
 	return df
 
-# runAlgorithm(grays)
+# ithm(grays)
 def initializeDataFrame():
 	
 # create dataframe
 	df = pd.DataFrame( columns=('Shutter 0', 'Gain 0', 'Illumination 0', 'Shutter 1', 'Gain 1', 'Illumination 1') )
 
-	print df
 	return df
 
 
@@ -213,25 +232,63 @@ def checkPictures(grays, missedPics):
 	return [grays, missedPics]
 
 
-def iterateThruData(baselinePos,sideBaseline,iterator, grayImgs,sift,bf, optPointsdf,data):
+def iterateThruData(baselinePos,sideBaseline,iterator, grayImgs,sift,flann, optPointsdf,data):
 	i=0
 	while (i<=len(grayImgs[0])):
 		j = i+iterator
 		
 		# print grayImgs
-		bestPos,sideBest,bestBrightness,baselineBrightness = findBestMatch(baselinePos,i,j,grayImgs, sift,bf,sideBaseline)
+		bestPos,sideBest,bestBrightness,baselineBrightness = findBestMatch(baselinePos,i,j,grayImgs, sift,flann,sideBaseline)
 		optPointsdf = saveOptimalSettingsVector(data, baselinePos,sideBaseline, bestPos,sideBest, optPointsdf,bestBrightness,baselineBrightness)
 		i=j+1
 	return optPointsdf
+def addToCSV(fileName, optPointsData):
+	if (os.path.exists(fileName)):
+		print "adding to previous CSV"
+		f = open(fileName, 'a') # Open file as append mode
+		optPointsData.to_csv(f, header = False)
+		f.close()
+	else:
+		print "creating new CSV"
+		optPointsData.to_csv(fileName)
 
-# grays0, missedPictures0 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_0_', 0,349)
-# grays1, missedPictures1 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_1_', 0,349)
-# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
-# baselinePos,sideBaseline, sift, bf = runAlgorithm(picData[0])
-# data = getCameraSettingsData('2015-02-22TNQ_0/','2015-02-22TNQ_rawdata.csv')
-# optPointsdf = initializeDataFrame()
+grays0, missedPictures0 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_0_', 0,349)
+grays1, missedPictures1 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_1_', 0,349)
+picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+data = getCameraSettingsData('2015-02-22TNQ_0/2015-02-22TNQ_rawdata.csv')
+optPointsdf = initializeDataFrame()
 
-# optPointsdf  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, bf,optPointsdf,data)
+optPointsdf  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data)
+addToCSV('optimalPoints.csv', optPointsdf)
 # optPointsdf.to_csv('optimalPoints.csv')
 
-print leastSquaresRegression('a','b')
+print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1'],'Illumination 1' )
+
+
+# imgX = cv2.imread('2015-02-22TNQ_0/2015-02-22TNQ_0_0011.png')
+# img1 = cv2.imread('2015-02-22TNQ_0/2015-02-22TNQ_0_0016.png')
+
+# imgGray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+# imgGray2 = cv2.cvtColor(imgX, cv2.COLOR_BGR2GRAY)
+# sift = cv2.SURF()
+# # feature detection on baseline image
+# # # creating brute force feature matcher object
+# #  = cv2.BFMatcher()
+# # FLANN parameters
+# FLANN_INDEX_KDTREE = 0
+# index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+# search_params = dict(checks=50)   # or pass empty dictionary
+
+# flann = cv2.FlannBasedMatcher(index_params,search_params)
+
+# keypoints1,descriptors1 = sift.detectAndCompute(imgGray,None)
+# keypoints2,descriptors2 = sift.detectAndCompute(imgGray2,None)
+# matches = flann.knnMatch(descriptors1,descriptors2,k=2)
+# # print matches[10][0].distance
+# # print matches[10][0].trainIdx
+# # print matches[10][0].queryIdx
+# # print matches[10][0].imgIdx 
+# # print matches[10][1].trainIdx
+# # print matches[10][1].queryIdx
+# print np.float32([keypoints1[matches[0][0].queryIdx].pt])
