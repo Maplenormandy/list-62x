@@ -119,12 +119,12 @@ def findBestMatch(baselinePos, startVal, endVal, grayImages,sift,flann, leftRigh
 	for e in range(0, len(matchImageQualities)):
 		prec=[]
 		for d in range(0, len(matchImageQualities[e])):
-			if (matchImageQualities[e][d][1]>1):
+			if (matchImageQualities[e][d][1]>50):
 				precision  = float(matchImageQualities[e][d][0])/float(matchImageQualities[e][d][1])
 			else:
 				precision = 0
 			prec.append(precision)
-			if precision > maxPrecision and (d+startVal)!=baselinePos:
+			if precision > maxPrecision: #and (d+startVal)!=baselinePos:
 				side = e
 				maxPrecision = precision
 				bestImage = d+startVal
@@ -178,31 +178,7 @@ def usableMatch(matches, keypoints, keypointsBaseline):
 #     kp_pairs = zip(mkp1, mkp2)
 #     return p1, p2, kp_pairs
 
-#using statsmodels.api library
-def leastSquaresRegression(fileName, optParam,dependParam, Xparam):
-	
-	data = getCameraSettingsData(fileName)
-	X = data[dependParam]
-	Y = data[optParam]
-	data.head()
-	X = sm.add_constant(X)
-	est = sm.OLS(Y,X).fit()
-	print('Parameters: ', est.params)
-	print('Standard errors: ', est.bse)
-	print('Predicted values: ', est.predict())
 
-	prstd, iv_l, iv_u = wls_prediction_std(est)
-
-	fig, ax = plt.subplots(figsize=(8,6))
-
-	ax.plot(X[Xparam], Y, 'o', label="Training Data")
-	ax.plot(X[Xparam], est.fittedvalues, 'r--.', label="Least Squares")
-	ax.legend(loc='best')
-	plt.suptitle("Regression for Predicted Shutter Speed")
-	plt.ylabel('Predicted Shutter Speed')
-	plt.xlabel('Mean Brightness of Best Image')
-	plt.show()
-	return est.summary()
 def getCameraSettingsData(fileName):
 	df = pd.read_csv(fileName)
 	return df
@@ -234,7 +210,7 @@ def checkPictures(grays, missedPics):
 
 def iterateThruData(baselinePos,sideBaseline,iterator, grayImgs,sift,flann, optPointsdf,data, folder):
 	i=0
-	while (i<=len(grayImgs[0])):
+	while (i<len(grayImgs)):
 		j = i+iterator
 		
 		# print grayImgs
@@ -251,6 +227,33 @@ def addToCSV(fileName, optPointsData):
 	else:
 		print "creating new CSV"
 		optPointsData.to_csv(fileName)
+
+#using statsmodels.api library
+def leastSquaresRegression(fileName, optParam,dependParam, Xparam):
+	
+	data = getCameraSettingsData(fileName)
+	X = data[dependParam]
+	Y = data[optParam]
+	data.head()
+	X = sm.add_constant(X)
+	est = sm.OLS(Y,X).fit()
+	print('Parameters: ', est.params)
+	print('Standard errors: ', est.bse)
+	print('Predicted values: ', est.predict())
+
+	prstd, iv_l, iv_u = wls_prediction_std(est)
+
+	fig, ax = plt.subplots(figsize=(8,6))
+
+	ax.plot(X[Xparam] - X['Illumination 0'], Y, 'o', label="Training Data")
+	ax.plot(X[Xparam]- X['Illumination 0'], est.fittedvalues, 'r--.', label="Least Squares")
+	ax.legend(loc='best')
+	plt.suptitle("Regression for Predicted Shutter Speed")
+	plt.ylabel('Predicted Shutter Speed')
+	plt.xlabel('Mean Brightness of Best Image')
+	plt.ylim([0,600])
+	plt.show()
+	return est.summary()
 
 # def runTests(start, end):
 # 	i=start
@@ -273,22 +276,30 @@ def addToCSV(fileName, optPointsData):
 # runTests(1550,1599)
 
 
-# grays0, missedPictures0, folder = prepData('csail03-08-15_0/','csail03-08-15_0_', 0,49)
-# grays1, missedPictures1, folder1 = prepData('csail03-08-15_0/','csail03-08-15_1_', 0,49)
+# grays0, missedPictures0, folder = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_0_', 0,99)
+# grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_1_', 0,99)
 # picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
 # baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-# data = getCameraSettingsData('csail03-08-15_0/csail03-08-15_rawdata.csv')
+# data = getCameraSettingsData('2015-02-22TNQ_1/2015-02-22TNQ_rawdata.csv')
 # optPointsdf = initializeDataFrame()
 
 # optPointsdf  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder)
 # addToCSV('optimalPoints.csv', optPointsdf)
 
+# print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1'],'Illumination 1' )
 
 
-# optPointsdf.to_csv('optimalPoints.csv')
+# grays0, missedPictures0, folder = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_0_', 0,349)
+# grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_1_', 0,349)
+# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+# baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+# data = getCameraSettingsData('2015-02-22TNQ_0/2015-02-22TNQ_rawdata.csv')
+# optPointsdf = initializeDataFrame()
 
-print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1'],'Illumination 1' )
+# optPointsdf  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder)
+# addToCSV('optimalPoints.csv', optPointsdf)
 
+print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1'],'Illumination 1')
 
 # imgX = cv2.imread('2015-02-22TNQ_0/2015-02-22TNQ_0_0011.png')
 # img1 = cv2.imread('2015-02-22TNQ_0/2015-02-22TNQ_0_0016.png')
