@@ -28,7 +28,7 @@ def prepData(folder, pictureStartString, start, end):
 			grayImages.append(cv2.cvtColor(cv2.imread(picString), cv2.COLOR_BGR2GRAY))
 		else:
 			absentPictures.append(a)
-	return grayImages,absentPictures
+	return grayImages,absentPictures,folder
 
 def formatNumber(x):
 	if (x==0):
@@ -211,35 +211,35 @@ def getCameraSettingsData(fileName):
 def initializeDataFrame():
 	
 # create dataframe
-	df = pd.DataFrame( columns=('Shutter 0', 'Gain 0', 'Illumination 0', 'Shutter 1', 'Gain 1', 'Illumination 1') )
+	df = pd.DataFrame( columns=('Shutter 0', 'Gain 0', 'Illumination 0', 'Shutter 1', 'Gain 1', 'Illumination 1','FileLocation') )
 
 	return df
 
 
-def saveOptimalSettingsVector(df, baselinePos,sideBaseline, bestPos, sideBest, optimalPointsDf, bestBrightness,baselineBrightness): #imageBrightness
+def saveOptimalSettingsVector(df, baselinePos,sideBaseline, bestPos, sideBest, optimalPointsDf, bestBrightness,baselineBrightness, folder): #imageBrightness
 	# Feature Vector = [[baseIllumination, bestIllumination, baseShutter, baseGain, baseVariac, bestVariac],[bestShutter, bestGain]]
 	# baseIllumination = 
 	a=str(sideBaseline)
 	b = str(sideBest)
-	optimalPointsDf.loc[len(optimalPointsDf['Shutter 0'])] = ([df['Shutter '+a][baselinePos],df['Gain '+a][baselinePos],baselineBrightness,df['Shutter '+b][bestPos], df['Gain '+b][bestPos],bestBrightness])
+	optimalPointsDf.loc[len(optimalPointsDf['Shutter 0'])] = ([df['Shutter '+a][baselinePos],df['Gain '+a][baselinePos],baselineBrightness,df['Shutter '+b][bestPos], df['Gain '+b][bestPos],bestBrightness, folder])
 	
 	return optimalPointsDf
 
 def checkPictures(grays, missedPics):
 	for i in range(0, len(missedPics)):
 		for j in range(0, len(missedPics[i])):
-			print "missed Picture at position "+ str(missedPictures[i][j])
+			print "missed Picture at position "+ str(missedPics[i][j])
 	return [grays, missedPics]
 
 
-def iterateThruData(baselinePos,sideBaseline,iterator, grayImgs,sift,flann, optPointsdf,data):
+def iterateThruData(baselinePos,sideBaseline,iterator, grayImgs,sift,flann, optPointsdf,data, folder):
 	i=0
 	while (i<=len(grayImgs[0])):
 		j = i+iterator
 		
 		# print grayImgs
 		bestPos,sideBest,bestBrightness,baselineBrightness = findBestMatch(baselinePos,i,j,grayImgs, sift,flann,sideBaseline)
-		optPointsdf = saveOptimalSettingsVector(data, baselinePos,sideBaseline, bestPos,sideBest, optPointsdf,bestBrightness,baselineBrightness)
+		optPointsdf = saveOptimalSettingsVector(data, baselinePos,sideBaseline, bestPos,sideBest, optPointsdf,bestBrightness,baselineBrightness, folder)
 		i=j+1
 	return optPointsdf
 def addToCSV(fileName, optPointsData):
@@ -252,15 +252,39 @@ def addToCSV(fileName, optPointsData):
 		print "creating new CSV"
 		optPointsData.to_csv(fileName)
 
-grays0, missedPictures0 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_0_', 0,349)
-grays1, missedPictures1 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_1_', 0,349)
-picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
-baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-data = getCameraSettingsData('2015-02-22TNQ_0/2015-02-22TNQ_rawdata.csv')
-optPointsdf = initializeDataFrame()
+# def runTests(start, end):
+# 	i=start
+# 	while (i<=end):
+# 		j = i+49
+# 		grays0, missedPictures0, folder = prepData('csail03-08-15_0/','csail03-08-15_0_', i,j)
+# 		grays1, missedPictures1, folder1 = prepData('csail03-08-15_0/','csail03-08-15_1_', i,j)
+# 		picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+# 		baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+# 		data = getCameraSettingsData('csail03-08-15_0/csail03-08-15_rawdata.csv')
+# 		optPointsdf = initializeDataFrame()
 
-optPointsdf  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data)
-addToCSV('optimalPoints.csv', optPointsdf)
+# 		optPointsdf  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder)
+# 		addToCSV('optimalPoints.csv', optPointsdf)
+# 		i=j+1
+# 	print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1'],'Illumination 1' )
+
+
+
+# runTests(1550,1599)
+
+
+# grays0, missedPictures0, folder = prepData('csail03-08-15_0/','csail03-08-15_0_', 0,49)
+# grays1, missedPictures1, folder1 = prepData('csail03-08-15_0/','csail03-08-15_1_', 0,49)
+# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+# baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+# data = getCameraSettingsData('csail03-08-15_0/csail03-08-15_rawdata.csv')
+# optPointsdf = initializeDataFrame()
+
+# optPointsdf  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder)
+# addToCSV('optimalPoints.csv', optPointsdf)
+
+
+
 # optPointsdf.to_csv('optimalPoints.csv')
 
 print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1'],'Illumination 1' )
