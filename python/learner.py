@@ -10,6 +10,7 @@ import statsmodels.api as sm
 from matplotlib import pyplot as plt
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 from sklearn import datasets, linear_model
+import pickle
 
 
 
@@ -131,7 +132,8 @@ def findBestMatch(baselinePos, startVal, endVal, grayImages,sift,flann, leftRigh
 		precisionValues.append(prec)
 	print str(bestImage)+" is best image on side "+str(side)
 	bestBrightness = cv2.mean(grayImages[side][bestImage])[0]
-	return bestImage,side, bestBrightness,baselineBrightness
+	allParamVals = [imgBrightness, matchImageQualities]
+	return bestImage,side, bestBrightness,baselineBrightness,allParamVals
 
 
 
@@ -142,13 +144,7 @@ def usableMatch(matches, keypoints, keypointsBaseline):
 	dstPts=[]
 	for m,n in matches:
 		if m.distance <.75*n.distance:
-			correctMatches.append(m)
-	# for m in correctMatches:
-	# 	print "entered"
-	# 	print 
-	# 	dstPts.append(np.float32([keypoints[m.trainIdx].pt]))
-	# 	srcPts.append(np.float32([keypointsBaseline[m.queryIdx].pt]))
-
+			correctMatches.append(m)  
 	if len(correctMatches)>minAmmount:
 		dst_pts = np.float32([ keypoints[m.trainIdx].pt for m in correctMatches ])
 		src_pts = np.float32([ keypointsBaseline[m.queryIdx].pt for m in correctMatches ])
@@ -162,22 +158,6 @@ def usableMatch(matches, keypoints, keypointsBaseline):
 		efficiency = [0, len(keypoints)]
 	return efficiency
 
-# def filter_matches(kp1, kp2, matches, ratio = 0.75):
-#     """
-#     Keep only matches that have distance ratio to 
-#     second closest point less than 'ratio'.
-#     """
-#     mkp1, mkp2 = [], []
-#     for m in matches:
-#         if m[0].distance < m[1].distance * ratio:
-#             m = m[0]
-#             mkp1.append( kp1[m.queryIdx] )
-#             mkp2.append( kp2[m.trainIdx] )
-#     p1 = np.float32([kp.pt for kp in mkp1])
-#     p2 = np.float32([kp.pt for kp in mkp2])
-#     kp_pairs = zip(mkp1, mkp2)
-#     return p1, p2, kp_pairs
-
 
 def getCameraSettingsData(fileName):
 	df = pd.read_csv(fileName)
@@ -185,19 +165,27 @@ def getCameraSettingsData(fileName):
 
 # ithm(grays)
 def initializeDataFrame():
-	
 # create dataframe
-	df = pd.DataFrame( columns=('Shutter 0', 'Gain 0', 'Illumination 0', 'Shutter 1', 'Gain 1', 'Illumination 1','FileLocation') )
+	df = pd.DataFrame( columns=('Shutter 0', 'Gain 0', 'Illumination 0', 'Shutter 1', 'Gain 1', 'Illumination 1','FileLocation', 'NumMatches') )
 
 	return df
+def initializeAllParamsDF():
+	df = pd.DataFrame( columns=('Shutter B', 'Gain B', 'Illumination B', 'Shutter I', 'Gain I', 'Illumination I', 'numFeatures I', 'numMatches B-I', 'name I','FileLocation'))
+	return df
+def saveAllImageParameters(df, baselinePos, sideBaseline, allParamVals, dfParamVals,baselineBrightness, folder):
+	a =str(sideBaseline)
+	for i in range(0, len(allParamVals[0])):
+		for j in range(0, len(allParamVals[0][i])):
+			b = str(i)
+			dfParamVals.loc[len(dfParamVals['Shutter B'])] = ([df['Shutter '+a][baselinePos],df['Gain '+a][baselinePos], baselineBrightness,df['Shutter '+b][j],df['Gain '+b][j], allParamVals[0][i][j], allParamVals[1][i][j][1], allParamVals[1][i][j][0], df['Image File '+b][j], folder])
 
+	return dfParamVals
 
-def saveOptimalSettingsVector(df, baselinePos,sideBaseline, bestPos, sideBest, optimalPointsDf, bestBrightness,baselineBrightness, folder): #imageBrightness
-	# Feature Vector = [[baseIllumination, bestIllumination, baseShutter, baseGain, baseVariac, bestVariac],[bestShutter, bestGain]]
-	# baseIllumination = 
+def saveOptimalSettingsVector(df, baselinePos,sideBaseline, bestPos, sideBest, optimalPointsDf, bestBrightness,baselineBrightness, folder, allParamVals): #imageBrightness
+	
 	a=str(sideBaseline)
 	b = str(sideBest)
-	optimalPointsDf.loc[len(optimalPointsDf['Shutter 0'])] = ([df['Shutter '+a][baselinePos],df['Gain '+a][baselinePos],baselineBrightness,df['Shutter '+b][bestPos], df['Gain '+b][bestPos],bestBrightness, folder])
+	optimalPointsDf.loc[len(optimalPointsDf['Shutter 0'])] = ([df['Shutter '+a][baselinePos],df['Gain '+a][baselinePos],baselineBrightness,df['Shutter '+b][bestPos], df['Gain '+b][bestPos],bestBrightness,folder,allParamVals[1][sideBest][bestPos][0]])
 	
 	return optimalPointsDf
 
@@ -208,16 +196,17 @@ def checkPictures(grays, missedPics):
 	return [grays, missedPics]
 
 
-def iterateThruData(baselinePos,sideBaseline,iterator, grayImgs,sift,flann, optPointsdf,data, folder):
+def iterateThruData(baselinePos,sideBaseline,iterator, grayImgs,sift,flann, optPointsdf,data, folder, dfParamVals):
 	i=0
 	while (i<len(grayImgs)):
 		j = i+iterator
 		
 		# print grayImgs
-		bestPos,sideBest,bestBrightness,baselineBrightness = findBestMatch(baselinePos,i,j,grayImgs, sift,flann,sideBaseline)
-		optPointsdf = saveOptimalSettingsVector(data, baselinePos,sideBaseline, bestPos,sideBest, optPointsdf,bestBrightness,baselineBrightness, folder)
+		bestPos,sideBest,bestBrightness,baselineBrightness, allParamVals = findBestMatch(baselinePos,i,j,grayImgs, sift,flann,sideBaseline)
+		optPointsdf = saveOptimalSettingsVector(data, baselinePos,sideBaseline, bestPos,sideBest, optPointsdf,bestBrightness,baselineBrightness, folder, allParamVals)
+		dfParamVals = saveAllImageParameters(data, baselinePos, sideBaseline, allParamVals, dfParamVals,baselineBrightness, folder)
 		i=j+1
-	return optPointsdf
+	return optPointsdf, dfParamVals
 def addToCSV(fileName, optPointsData):
 	if (os.path.exists(fileName)):
 		print "adding to previous CSV"
@@ -233,7 +222,7 @@ def leastSquaresRegression(fileName, optParam,dependParam, Xparam):
 	
 	data = getCameraSettingsData(fileName)
 	X = data[dependParam]
-	Y = data[optParam]
+	Y = data[optParam] - data['Shutter 0']
 	data.head()
 	X = sm.add_constant(X)
 	est = sm.OLS(Y,X).fit()
@@ -246,13 +235,15 @@ def leastSquaresRegression(fileName, optParam,dependParam, Xparam):
 	fig, ax = plt.subplots(figsize=(8,6))
 
 	ax.plot(X[Xparam] - X['Illumination 0'], Y, 'o', label="Training Data")
-	ax.plot(X[Xparam]- X['Illumination 0'], est.fittedvalues, 'r--.', label="Least Squares")
+	# ax.plot(X[Xparam]- X['Illumination 0'], est.fittedvalues, 'r--.', label="Least Squares")
 	ax.legend(loc='best')
 	plt.suptitle("Regression for Predicted Shutter Speed")
-	plt.ylabel('Predicted Shutter Speed')
-	plt.xlabel('Mean Brightness of Best Image')
-	plt.ylim([0,600])
+	plt.ylabel('Difference of Predicted Shutter Speed and Baseline Shutter Speed')
+	plt.xlabel('Mean Brightness of Best Image - Mean Brightness of Baseline Image')
+	plt.ylim([-600,600])
 	plt.show()
+ 
+	pickle.dump( est, open( "regression.p", "wb" ) )
 	return est.summary()
 
 # def runTests(start, end):
@@ -265,8 +256,8 @@ def leastSquaresRegression(fileName, optParam,dependParam, Xparam):
 # 		baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
 # 		data = getCameraSettingsData('csail03-08-15_0/csail03-08-15_rawdata.csv')
 # 		optPointsdf = initializeDataFrame()
-
-# 		optPointsdf  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder)
+		# allParamDf = initializeAllParamsDF()
+# 		optPointsdf  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder, allParamDf)
 # 		addToCSV('optimalPoints.csv', optPointsdf)
 # 		i=j+1
 # 	print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1'],'Illumination 1' )
@@ -276,15 +267,16 @@ def leastSquaresRegression(fileName, optParam,dependParam, Xparam):
 # runTests(1550,1599)
 
 
-# grays0, missedPictures0, folder = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_0_', 0,99)
-# grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_1_', 0,99)
-# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
-# baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-# data = getCameraSettingsData('2015-02-22TNQ_1/2015-02-22TNQ_rawdata.csv')
-# optPointsdf = initializeDataFrame()
-
-# optPointsdf  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder)
-# addToCSV('optimalPoints.csv', optPointsdf)
+grays0, missedPictures0, folder = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_0_', 0,99)
+grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_1_', 0,99)
+picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+data = getCameraSettingsData('2015-02-22TNQ_1/2015-02-22TNQ_rawdata.csv')
+optPointsdf = initializeDataFrame()
+dfParamVals = initializeAllParamsDF()
+optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
+addToCSV('allParamterValues.csv', dfParamVals)
+addToCSV('optimalPoints.csv', optPointsdf)
 
 # print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1'],'Illumination 1' )
 
@@ -299,7 +291,7 @@ def leastSquaresRegression(fileName, optParam,dependParam, Xparam):
 # optPointsdf  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder)
 # addToCSV('optimalPoints.csv', optPointsdf)
 
-print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1'],'Illumination 1')
+# print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1'],'Illumination 1')
 
 # imgX = cv2.imread('2015-02-22TNQ_0/2015-02-22TNQ_0_0011.png')
 # img1 = cv2.imread('2015-02-22TNQ_0/2015-02-22TNQ_0_0016.png')
