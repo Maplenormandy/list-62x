@@ -1,5 +1,5 @@
 import cv2
-import np
+import numpy as np
 
 def meanLuminance(grayImg):
     return cv2.mean(grayImg)[0]
