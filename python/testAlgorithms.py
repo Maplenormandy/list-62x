@@ -127,8 +127,7 @@ if not collectData:
 t = 0
 i = 0
 
-# This is for waiting for the autoexposure to settle
-autoSettle = 0
+writing = False
 
 if cap0.isOpened() and cap1.isOpened():
     q = Queue()
@@ -136,62 +135,49 @@ if cap0.isOpened() and cap1.isOpened():
 
     p.start()
 
-    # Turn off white balance
-    cap0.set(17, -4)
-    cap0.set(26, -4)
-    cap1.set(17, -4)
-    cap1.set(26, -4)
-
     """
     if not collectData:
         cv2.setTrackbarPos('Shutter Baseline', 'frame', int(cap0.get(15)))
         cv2.setTrackbarPos('Gain Baseline', 'frame', int(cap0.get(14)))
         cv2.setTrackbarPos('Shutter Compared', 'frame', int(cap1.get(15)))
         cv2.setTrackbarPos('Gain Compared', 'frame', int(cap1.get(14)))
-        """
+    """
 
     while True:
-        if t < len(data) and i == 0:
-            cap0.set(15, data.loc[t, 'Shutter 0'])
-            cap0.set(14, data.loc[t, 'Gain 0'])
-            cap1.set(15, data.loc[t, 'Shutter 1'])
-            cap1.set(14, data.loc[t, 'Gain 1'])
-            if abs(data.loc[t, 'Shutter 0']+2.0) < 0.1:
-                autoSettle = 12
-            else:
-                autoSettle = 0
-
         i += 1
 
-        if t >= len(data) or i-autoSettle > 6:
-            ret0, frame0 = cap0.read()
-            ret1, frame1 = cap1.read()
+        ret0, frame0 = cap0.read()
+        ret1, frame1 = cap1.read()
 
-            if ret0 and ret1:
-                frame0 = cv2.cvtColor(frame0, cv2.COLOR_BAYER_BG2BGR)
-                frame1 = cv2.cvtColor(frame1, cv2.COLOR_BAYER_BG2BGR)
-                disp = np.concatenate((frame0, frame1), axis=1)
+        if ret0 and ret1:
+            frame0 = cv2.cvtColor(frame0, cv2.COLOR_BAYER_BG2BGR)
+            frame1 = cv2.cvtColor(frame1, cv2.COLOR_BAYER_BG2BGR)
+            disp = np.concatenate((frame0, frame1), axis=1)
 
-                if t < len(data):
-                    data.loc[t, 'Timestamp'] = currentTimestamp()
+            if writing:
+                data.loc[t, 'Timestamp'] = currentTimestamp()
 
-                    data.loc[t, 'Shutter 0'] = cap0.get(15)
-                    data.loc[t, 'Gain 0'] = cap0.get(14)
+                data.loc[t, 'Shutter 0'] = cap0.get(15)
+                data.loc[t, 'Gain 0'] = cap0.get(14)
+
+                data.loc[t, 'Shutter 1'] = cap1.get(15)
+                data.loc[t, 'Gain 1'] = cap1.get(14)
+
+                if i > 6:
                     imgname0 = shortname + '_0_{:0>4d}.png'.format(t)
                     data.loc[t, 'Image File 0'] = imgname0
-                    q.put((imgname0, frame0))
-
-                    data.loc[t, 'Shutter 1'] = cap1.get(15)
-                    data.loc[t, 'Gain 1'] = cap1.get(14)
                     imgname1 = shortname + '_1_{:0>4d}.png'.format(t)
                     data.loc[t, 'Image File 1'] = imgname1
+                    q.put((imgname0, frame0))
                     q.put((imgname1, frame1))
+                    i = 0
+                else:
+                    pass
 
-                    t += 1
+                t += 1
 
-                cv2.imshow('frame', disp)
+            cv2.imshow('frame', disp)
 
-            i = 0
 
         else:
             cap0.grab()
@@ -201,39 +187,11 @@ if cap0.isOpened() and cap1.isOpened():
 
         if key == ord('q'):
             break
-        elif key == ord('w') and t >= len(data):
-            t = len(data)
-            shutterRange = np.linspace(1.0, 531.0, 48)
-            cap0.set(15, 1.0)
-            cap0.set(14, 16.0)
-            cap1.set(15, 1.0)
-            cap1.set(14, 16.0)
-            k = 0
-            # 48 shutter changes, 15 gain changes, 1 auto exposure shot
-            for ind in range(len(shutterRange)):
-                data.loc[t+k, 'Shutter 0'] = shutterRange[ind]
-                data.loc[t+k, 'Gain 0'] = 16.0
-                data.loc[t+k, 'Shutter 1'] = shutterRange[ind]
-                data.loc[t+k, 'Gain 1'] = 16.0
-                for name in params:
-                    data.loc[t+k, name] = params[name]
-                k += 1
-            gainRange = np.linspace(16.0, 64.0, 16)
-            for ind in range(len(gainRange)-1):
-                data.loc[t+k, 'Shutter 0'] = 531.0
-                data.loc[t+k, 'Gain 0'] = gainRange[ind+1]
-                data.loc[t+k, 'Shutter 1'] = 531.0
-                data.loc[t+k, 'Gain 1'] = gainRange[ind+1]
-                for name in params:
-                    data.loc[t+k, name] = params[name]
-                k += 1
-            # Last frame should be autogain
-            data.loc[t+k, 'Shutter 0'] = -2.0
-            data.loc[t+k, 'Gain 0'] = -2.0
-            data.loc[t+k, 'Shutter 1'] = -2.0
-            data.loc[t+k, 'Gain 1'] = -2.0
-
+        elif key == ord('w'):
+            writing = True
             i = 0
+        elif key == ord('e'):
+            writing = False
 
 q.put(False)
 
