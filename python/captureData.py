@@ -157,7 +157,7 @@ if cap0.isOpened() and cap1.isOpened():
             cap1.set(15, data.loc[t, 'Shutter 1'])
             cap1.set(14, data.loc[t, 'Gain 1'])
             if abs(data.loc[t, 'Shutter 0']+2.0) < 0.1:
-                autoSettle = 12
+                autoSettle = 24
             else:
                 autoSettle = 0
 
@@ -215,6 +215,8 @@ if cap0.isOpened() and cap1.isOpened():
                 data.loc[t+k, 'Gain 0'] = 16.0
                 data.loc[t+k, 'Shutter 1'] = shutterRange[ind]
                 data.loc[t+k, 'Gain 1'] = 16.0
+                data.loc[t+k, 'IsAuto 0'] = 0.0
+                data.loc[t+k, 'IsAuto 1'] = 0.0
                 for name in params:
                     data.loc[t+k, name] = params[name]
                 k += 1
@@ -224,6 +226,8 @@ if cap0.isOpened() and cap1.isOpened():
                 data.loc[t+k, 'Gain 0'] = gainRange[ind+1]
                 data.loc[t+k, 'Shutter 1'] = 531.0
                 data.loc[t+k, 'Gain 1'] = gainRange[ind+1]
+                data.loc[t+k, 'IsAuto 0'] = 0.0
+                data.loc[t+k, 'IsAuto 1'] = 0.0
                 for name in params:
                     data.loc[t+k, name] = params[name]
                 k += 1
@@ -232,6 +236,8 @@ if cap0.isOpened() and cap1.isOpened():
             data.loc[t+k, 'Gain 0'] = -2.0
             data.loc[t+k, 'Shutter 1'] = -2.0
             data.loc[t+k, 'Gain 1'] = -2.0
+            data.loc[t+k, 'IsAuto 0'] = 1.0
+            data.loc[t+k, 'IsAuto 1'] = 1.0
 
             i = 0
 
