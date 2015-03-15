@@ -6,5 +6,5 @@ def meanLuminance(grayImg):
 
 def contrast(grayImg):
     minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(grayImg)
-    return np.Array([minVal, maxVal])
-
+    val = maxVal - minVal
+    return val
