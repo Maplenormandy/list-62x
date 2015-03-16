@@ -52,38 +52,28 @@ def findBaseline(grayImgs):
 	imgKeypoints = []
 	imgDescriptors=[]
 	precisionValues=[]
-	# converting images to grayscale and adding to array
-
-	# using feature detector orb -  could change to sift or surf if necessary.
 	sift = cv2.SURF()
-	# feature detection on baseline image
-	# # creating brute force feature matcher object
-	#  = cv2.BFMatcher()
-	# FLANN parameters
 	FLANN_INDEX_KDTREE = 0
 	index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
 	search_params = dict(checks=50)   # or pass empty dictionary
 
 	flann = cv2.FlannBasedMatcher(index_params,search_params)
 
-	# performing feature detection on all the other images and matching with baseline
 	maxKeypoints = 0 
 	baselinePosition = 0
 	leftRight = 0  #left = 0, right = 1
-	for a in range(0, len(grayImgs)):
-		keypts=[]
-		dscriptors=[]
-		for e in range(0, len(grayImgs[a])):
-			keypoints, descriptors = sift.detectAndCompute(grayImgs[a][e], None)
-			keypts.append(keypoints)
-			dscriptors.append(descriptors)
-			if (len(keypoints) > maxKeypoints):
-				leftRight = a
-				baselinePosition = e
-				maxKeypoints = len(keypoints)
-		imgKeypoints.append(keypts)
-		imgDescriptors.append(dscriptors)
-	print "baseline picture is "+str(baselinePosition)
+	# for a in range(0, len(grayImgs)):
+
+	for e in range(0, len(grayImgs[0])):
+		keypoints, descriptors = sift.detectAndCompute(grayImgs[0][e], None)
+		imgKeypoints.append(keypoints)
+		imgDescriptors.append(descriptors)
+		if (len(keypoints) > maxKeypoints):
+			leftRight = 0
+			baselinePosition = e
+			maxKeypoints = len(keypoints)
+	
+	print "baseline picture is "+str(baselinePosition)+" on side "+str(leftRight)
 	print "it has "+ str(maxKeypoints)+" features"
 
 	return baselinePosition,leftRight,sift,flann
@@ -108,38 +98,35 @@ def findBestMatch(baselinePos, startVal, endVal, grayImages,sift,flann, leftRigh
 	maxPrecision=0
 	bestImage = 0
 	precisionValues=[]
-	for b in range(0, len(grayImages)):
-		matchQuals=[]
-		brightList=[]
-		for c in range(startVal, endVal):
-				keypoints,descriptors = sift.detectAndCompute(grayImages[b][c],None)
-				if descriptors!= None and descriptorsBaseline!=None:
-					matches = flann.knnMatch(descriptorsBaseline,descriptors,k=2)
-					efficiency = usableMatch(matches, keypoints, keypointsBaseline)
-					matchQuals.append(efficiency)
-					brightnessVal = determineBrightness(grayImages[b][c])
-					# print str(c)+ "length of "+str(brightnessVal)
-					brightList.append(brightnessVal)
-				else:
-					brightList.append([0,0])
-					matchQuals.append([0,0])
-		matchImageQualities.append(matchQuals)
-		brightnessVals.append(brightList)
-	side=0
-	for e in range(0, len(matchImageQualities)):
-		prec=[]
-		for d in range(0, len(matchImageQualities[e])):
-			if (matchImageQualities[e][d][1]>50):
-				precision  = float(matchImageQualities[e][d][0])/float(matchImageQualities[e][d][1])
+	
+	for c in range(startVal, endVal):
+			keypoints,descriptors = sift.detectAndCompute(grayImages[1][c],None)
+			if descriptors!= None and descriptorsBaseline!=None:
+				matches = flann.knnMatch(descriptorsBaseline,descriptors,k=2)
+				efficiency = usableMatch(matches, keypoints, keypointsBaseline)
+				matchImageQualities.append(efficiency)
+				brightnessVal = determineBrightness(grayImages[1][c])
+				# print str(c)+ "length of "+str(brightnessVal)
+				brightnessVals.append(brightnessVal)
 			else:
-				precision = 0
-			prec.append(precision)
-			if precision > maxPrecision: #and (d+startVal)!=baselinePos:
-				side = e
-				maxPrecision = precision
-				bestImage = d+startVal
-		precisionValues.append(prec)
-	print str(bestImage)+" is best image on side "+str(side)
+				brightnessVals.append([0,0])
+				matchImageQualities.append([0,0])
+	
+	side=1
+
+	
+	for d in range(0, len(matchImageQualities)):
+		if (matchImageQualities[d][1]>50):
+			precision  = float(matchImageQualities[d][0]/ matchImageQualities[d][1])
+		else:
+			precision = 0
+		if precision > maxPrecision: #and (d+startVal)!=baselinePos:
+			side = 1
+			maxPrecision = precision
+			bestImage = d+startVal
+		precisionValues.append(precision)
+
+	print str(bestImage)+" is best image on side "+str(side)+" with "+str(matchImageQualities[bestImage%50][0])+ " matches"
 	bestBrightness = determineBrightness(grayImages[side][bestImage])
 	allParamVals = [brightnessVals, matchImageQualities]
 	return bestImage,side, bestBrightness,baselineBrightness,allParamVals
@@ -185,7 +172,7 @@ def saveOptimalSettingsVector(df, baselinePos,sideBaseline, bestPos, sideBest, o
 	
 	a=str(sideBaseline)
 	b = str(sideBest)
-	optimalPointsDf.loc[len(optimalPointsDf['Shutter 0'])] = ([df['Shutter '+a][baselinePos], df['Gain '+a][baselinePos], baselineBrightness[0], baselineBrightness[1], df['Shutter '+b][bestPos], df['Gain '+b][bestPos],bestBrightness[0], bestBrightness[1],folder,allParamVals[1][sideBest][bestPos-i][0]])
+	optimalPointsDf.loc[len(optimalPointsDf['Shutter 0'])] = ([df['Shutter '+a][baselinePos], df['Gain '+a][baselinePos], baselineBrightness[0], baselineBrightness[1], df['Shutter '+b][bestPos], df['Gain '+b][bestPos],bestBrightness[0], bestBrightness[1],folder,allParamVals[1][bestPos-i][0]])
 	
 	return optimalPointsDf
 
@@ -198,10 +185,10 @@ def initializeAllParamsDF():
 
 def saveAllImageParameters(df, baselinePos, sideBaseline, allParamVals, dfParamVals,baselineBrightness, folder,x):
 	a =str(sideBaseline)
-	for i in range(0, len(allParamVals[0])):
-		for j in range(0, len(allParamVals[0][i])):
-			b = str(i)
-			dfParamVals.loc[len(dfParamVals['Shutter B'])] = ([ df['Shutter '+a][baselinePos], df['Gain '+a][baselinePos], baselineBrightness[0], baselineBrightness[1], df['Shutter '+b][j], df['Gain '+b][j], allParamVals[0][i][j][0], allParamVals[0][i][j][1], allParamVals[1][i][j][1], allParamVals[1][i][j][0], df['Image File '+b][j+x], folder])
+
+	for j in range(0, len(allParamVals[0])):
+		b = str(1)
+		dfParamVals.loc[len(dfParamVals['Shutter B'])] = ([ df['Shutter '+a][baselinePos], df['Gain '+a][baselinePos], baselineBrightness[0], baselineBrightness[1], df['Shutter '+b][j], df['Gain '+b][j], allParamVals[0][j][0], allParamVals[0][j][1], allParamVals[1][j][1], allParamVals[1][j][0], df['Image File '+b][j+x], folder])
 
 	return dfParamVals
 
@@ -279,15 +266,18 @@ def runTests(start, end):
 		addToCSV('optimalPoints.csv', optPointsdf)
 		addToCSV('allParamterValues.csv', dfParamVals)
 		i=j+1
-	print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Mean Illumination 0', 'Mean Illumination 1'],'Mean Illumination 1' )
+	# print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Mean Illumination 0', 'Mean Illumination 1'],'Mean Illumination 1' )
 
 
 
-# runTests(0,549)
-# runTests(650,899)
-# runTests(950,1299)
-# runTests(1450,1499)
-# runTests(1550,1599)
+# runTests(0,499) #10
+# print "finished 10"
+# runTests(650,899) #5
+# print "finished 15"
+# runTests(950,1299) #7
+# print finished "22"
+# runTests(1450,1499) #1
+# runTests(1550,1599) #1
 
 
 # grays0, missedPictures0, folder = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_0_', 0,99)
@@ -344,3 +334,20 @@ print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain
 # # print matches[10][1].trainIdx
 # # print matches[10][1].queryIdx
 # print np.float32([keypoints1[matches[0][0].queryIdx].pt])
+
+
+def runTests64(start, end):
+	i=start
+	while (i<=end):
+		j = i+62
+		grays0, missedPictures0, folder = prepData('csail03-08-15_0/','csail03-08-15_0_', i,j)
+		grays1, missedPictures1, folder1 = prepData('csail03-08-15_0/','csail03-08-15_1_', i,j)
+		picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+		baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+		data = getCameraSettingsData('csail03-08-15_0/csail03-08-15_rawdata.csv')
+		optPointsdf = initializeDataFrame()
+		dfParamVals = initializeAllParamsDF()
+		optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 62, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
+		addToCSV('optimalPoints.csv', optPointsdf)
+		addToCSV('allParamterValues.csv', dfParamVals)
+		i=j+2
