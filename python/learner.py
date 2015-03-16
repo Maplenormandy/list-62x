@@ -117,7 +117,7 @@ def findBestMatch(baselinePos, startVal, endVal, grayImages,sift,flann, leftRigh
 	
 	for d in range(0, len(matchImageQualities)):
 		if (matchImageQualities[d][1]>50):
-			precision  = float(matchImageQualities[d][0]/ matchImageQualities[d][1])
+			precision  = float(matchImageQualities[d][0])
 		else:
 			precision = 0
 		if precision > maxPrecision: #and (d+startVal)!=baselinePos:
@@ -223,11 +223,11 @@ def addToCSV(fileName, optPointsData):
 		optPointsData.to_csv(fileName)
 
 #using statsmodels.api library
-def leastSquaresRegression(fileName, optParam,dependParam, Xparam):
+def leastSquaresRegression(fileName, optParam,independParam, Xparam):
 	
 	data = getCameraSettingsData(fileName)
-	X = data[dependParam]
-	Y = data[optParam] - data['Shutter 0']
+	X = data[independParam]
+	Y = data[optParam] #- data['Shutter 0']
 	data.head()
 	X = sm.add_constant(X)
 	est = sm.OLS(Y,X).fit()
@@ -239,13 +239,40 @@ def leastSquaresRegression(fileName, optParam,dependParam, Xparam):
 
 	fig, ax = plt.subplots(figsize=(8,6))
 
-	ax.plot(X[Xparam] - X['Mean Illumination 0'], Y, 'o', label="Training Data")
+	ax.plot(X[Xparam], Y, 'o', label="Training Data")
 	# ax.plot(X[Xparam]- X['Illumination 0'], est.fittedvalues, 'r--.', label="Least Squares")
 	ax.legend(loc='best')
 	plt.suptitle("Regression for Predicted Shutter Speed")
-	plt.ylabel('Difference of Predicted Shutter Speed and Baseline Shutter Speed')
-	plt.xlabel('Mean Brightness of Best Image - Mean Brightness of Baseline Image')
-	plt.ylim([-600,600])
+	plt.ylabel('Predicted Shutter Speed ')
+	plt.xlabel('Mean Illumination of Best Image')
+	plt.ylim([0,600])
+	plt.show()
+ 
+	pickle.dump( est, open( "regression.p", "wb" ) )
+	return est.summary()
+def differencesLeastSquaresRegression(fileName, optParam,independParam, Xparam):
+	
+	data = getCameraSettingsData(fileName)
+	X = data[independParam]
+	Y = data[optParam] #- data['Shutter 0']
+	data.head()
+	X = sm.add_constant(X)
+	est = sm.OLS(Y,X).fit()
+	print('Parameters: ', est.params)
+	print('Standard errors: ', est.bse)
+	print('Predicted values: ', est.predict())
+
+	prstd, iv_l, iv_u = wls_prediction_std(est)
+
+	fig, ax = plt.subplots(figsize=(8,6))
+
+	ax.plot(X[Xparam]-X['Mean Illumination 0'], Y, 'o', label="Training Data")
+	# ax.plot(X[Xparam]- X['Illumination 0'], est.fittedvalues, 'r--.', label="Least Squares")
+	ax.legend(loc='best')
+	plt.suptitle("Regression for Predicted Shutter Speed")
+	plt.ylabel('Predicted Shutter Speed ')
+	plt.xlabel('Mean Brightness of Best Image')
+	plt.ylim([0,600])
 	plt.show()
  
 	pickle.dump( est, open( "regression.p", "wb" ) )
@@ -291,7 +318,6 @@ def runTests(start, end):
 # addToCSV('allParamterValues.csv', dfParamVals)
 # addToCSV('optimalPoints.csv', optPointsdf)
 
-# print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Illumination 0', 'Illumination 1'],'Illumination 1' )
 
 
 # grays0, missedPictures0, folder = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_0_', 0,349)
@@ -306,48 +332,26 @@ def runTests(start, end):
 # addToCSV('allParamterValues.csv', dfParamVals)
 # addToCSV('optimalPoints.csv', optPointsdf)
 
-print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Mean Illumination 0', 'Mean Illumination 1', 'Contrast 0', 'Contrast 1'],'Mean Illumination 1')
+print differencesLeastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Mean Illumination 0', 'Mean Illumination 1'],'Mean Illumination 1')
 
-# imgX = cv2.imread('2015-02-22TNQ_0/2015-02-22TNQ_0_0011.png')
-# img1 = cv2.imread('2015-02-22TNQ_0/2015-02-22TNQ_0_0016.png')
-
-# imgGray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-# imgGray2 = cv2.cvtColor(imgX, cv2.COLOR_BGR2GRAY)
-# sift = cv2.SURF()
-# # feature detection on baseline image
-# # # creating brute force feature matcher object
-# #  = cv2.BFMatcher()
-# # FLANN parameters
-# FLANN_INDEX_KDTREE = 0
-# index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-# search_params = dict(checks=50)   # or pass empty dictionary
-
-# flann = cv2.FlannBasedMatcher(index_params,search_params)
-
-# keypoints1,descriptors1 = sift.detectAndCompute(imgGray,None)
-# keypoints2,descriptors2 = sift.detectAndCompute(imgGray2,None)
-# matches = flann.knnMatch(descriptors1,descriptors2,k=2)
-# # print matches[10][0].distance
-# # print matches[10][0].trainIdx
-# # print matches[10][0].queryIdx
-# # print matches[10][0].imgIdx 
-# # print matches[10][1].trainIdx
-# # print matches[10][1].queryIdx
-# print np.float32([keypoints1[matches[0][0].queryIdx].pt])
 
 
 def runTests64(start, end):
 	i=start
 	while (i<=end):
 		j = i+62
-		grays0, missedPictures0, folder = prepData('csail03-08-15_0/','csail03-08-15_0_', i,j)
-		grays1, missedPictures1, folder1 = prepData('csail03-08-15_0/','csail03-08-15_1_', i,j)
+		grays0, missedPictures0, folder = prepData('2015-03-14gelb_2/','2015-03-14gelb_0_', i,j)
+		grays1, missedPictures1, folder1 = prepData('2015-03-14gelb_2/','2015-03-14gelb_1_', i,j)
 		picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
 		baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-		data = getCameraSettingsData('csail03-08-15_0/csail03-08-15_rawdata.csv')
+		data = getCameraSettingsData('2015-03-14gelb_2/2015-03-14gelb_rawdata.csv')
 		optPointsdf = initializeDataFrame()
 		dfParamVals = initializeAllParamsDF()
 		optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 62, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
 		addToCSV('optimalPoints.csv', optPointsdf)
 		addToCSV('allParamterValues.csv', dfParamVals)
 		i=j+2
+# skip 0,128,512
+# runTests64(64,127)
+# runTests(192,511)
+# runTests64(576,1279)
