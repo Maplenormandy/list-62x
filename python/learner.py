@@ -187,7 +187,7 @@ def saveOptimalSettingsVector(df, baselinePos,sideBaseline, bestPos, sideBest, o
 
 
 def initializeAllParamsDF():
-	df = pd.DataFrame( columns=('Shutter B', 'Gain B', 'Mean ForeGround Illumination B', 'Mean Background Illumination B', 'Contrast B','Mean B', 'Feature Luminance B','Blur Luminance B', 'Shutter I', 'Gain I', 'Mean Foreground Illumination I','Mean Background Illumination I', 'Contrast I','Mean I', 'Feature Luminance I','Blur Luminance I' 'numFeatures I', 'numMatches B-I', 'name I', 'FileLocation'))
+	df = pd.DataFrame( columns=('Shutter B', 'Gain B', 'Mean ForeGround Illumination B', 'Mean Background Illumination B', 'Contrast B','Mean B', 'Feature Luminance B','Blur Luminance B', 'Shutter I', 'Gain I', 'Mean Foreground Illumination I','Mean Background Illumination I', 'Contrast I','Mean I', 'Feature Luminance I','Blur Luminance I', 'numFeatures I', 'numMatches B-I', 'name I', 'FileLocation'))
 	return df
 
 
@@ -277,24 +277,24 @@ def differencesLeastSquaresRegression(fileName, optParam,independParam, Xparam, 
 	data.head()
 	X = sm.add_constant(X)
 	est = sm.OLS(Y,X).fit()
-	print('Parameters: ', est.params)
-	print('Standard errors: ', est.bse)
-	print('Predicted values: ', est.predict())
+	# print('Parameters: ', est.params)
+	# print('Standard errors: ', est.bse)
+	# print('Predicted values: ', est.predict())
 
-	prstd, iv_l, iv_u = wls_prediction_std(est)
+	# prstd, iv_l, iv_u = wls_prediction_std(est)
 
-	fig, ax = plt.subplots(figsize=(8,6))
+	# fig, ax = plt.subplots(figsize=(8,6))
 
-	ax.plot(X[Xparam]-X['Feature Luminance 0'], Y, 'o', label="Training Data")
-	# ax.plot(X[Xparam]- X['Illumination 0'], est.fittedvalues, 'r--.', label="Least Squares")
-	ax.legend(loc='best')
-	plt.suptitle("Regression for Predicted Shutter Speed")
-	plt.ylabel('Predicted Shutter Speed ')
-	plt.xlabel('Mean Brightness of Best Image')
-	plt.ylim([0,600])
-	plt.show()
+	# ax.plot(X[Xparam]-X['Feature Luminance 0'], Y, 'o', label="Training Data")
+	# # ax.plot(X[Xparam]- X['Illumination 0'], est.fittedvalues, 'r--.', label="Least Squares")
+	# ax.legend(loc='best')
+	# plt.suptitle("Regression for Predicted Shutter Speed")
+	# plt.ylabel('Predicted Shutter Speed ')
+	# plt.xlabel('Mean Brightness of Best Image')
+	# plt.ylim([0,600])
+	# plt.show()
  
-	pickle.dump( est, open( "feature_luminance_regression.p", "wb" ) )
+	pickle.dump( est, open( "mean_foreground_luminance.p", "wb" ) )
 	return est.summary()
 
 def runTests(start, end):
@@ -316,40 +316,40 @@ def runTests(start, end):
 
 
 
-runTests(0,499) #10
-print "finished 10"
-runTests(650,899) #5
-print "finished 15"
-runTests(950,1299) #7
-print "finished 22"
-runTests(1450,1499) #1
-runTests(1550,1599) #1
+# runTests(0,499) #10
+# print "finished 10"
+# runTests(650,899) #5
+# print "finished 15"
+# runTests(950,1299) #7
+# print "finished 22"
+# runTests(1450,1499) #1
+# runTests(1550,1599) #1
 
 
-grays0, missedPictures0, folder = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_0_', 0,99)
-grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_1_', 0,99)
-picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
-baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-data = getCameraSettingsData('2015-02-22TNQ_1/2015-02-22TNQ_rawdata.csv')
-optPointsdf = initializeDataFrame()
-dfParamVals = initializeAllParamsDF()
-optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
-addToCSV('allParamterValuesWmask.csv', dfParamVals)
-addToCSV('optimalPointsWmask.csv', optPointsdf)
+# grays0, missedPictures0, folder = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_0_', 0,99)
+# grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_1_', 0,99)
+# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+# baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+# data = getCameraSettingsData('2015-02-22TNQ_1/2015-02-22TNQ_rawdata.csv')
+# optPointsdf = initializeDataFrame()
+# dfParamVals = initializeAllParamsDF()
+# optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
+# addToCSV('allParamterValuesWmask.csv', dfParamVals)
+# addToCSV('optimalPointsWmask.csv', optPointsdf)
 
 
 
-grays0, missedPictures0, folder = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_0_', 0,349)
-grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_1_', 0,349)
-picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
-baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-data = getCameraSettingsData('2015-02-22TNQ_0/2015-02-22TNQ_rawdata.csv')
-optPointsdf = initializeDataFrame()
-dfParamVals = initializeAllParamsDF()
-optPointsdf,dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder,dfParamVals)
+# grays0, missedPictures0, folder = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_0_', 0,349)
+# grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_1_', 0,349)
+# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+# baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+# data = getCameraSettingsData('2015-02-22TNQ_0/2015-02-22TNQ_rawdata.csv')
+# optPointsdf = initializeDataFrame()
+# dfParamVals = initializeAllParamsDF()
+# optPointsdf,dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder,dfParamVals)
 
-addToCSV('allParamterValuesWmask.csv', dfParamVals)
-addToCSV('optimalPointsWmask.csv', optPointsdf)
+# addToCSV('allParamterValuesWmask.csv', dfParamVals)
+# addToCSV('optimalPointsWmask.csv', optPointsdf)
 
 
 def runTests64(start, end):
@@ -368,12 +368,13 @@ def runTests64(start, end):
 		addToCSV('allParamterValuesWmask.csv', dfParamVals)
 		i=j+2
 # skip 0,128,512
-runTests64(64,127)
-runTests(192,511)
-runTests64(576,1279)
+# runTests64(64,127)
+# runTests64(192,511)
+# runTests64(576,1279)
 
-# data = addExposure('optimalPointsWmask.csv')
-# # print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0', 'Mean 0', 'Mean 1'],'Mean 1', data)
-# print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0', 'Feature Luminance 0', 'Feature Luminance 1'],'Feature Luminance 1', data)
+data = addExposure('optimalPointsWmask.csv')
+# print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0', 'Mean 0', 'Mean 1'],'Mean 1', data)
+# print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0', 'Mean Foreground Illumination 0','Mean BackGround Illumination 0','Mean BackGround Illumination 1', 'Mean Foreground Illumination 1'],'Mean Foreground Illumination 1', data)
+print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0','Mean Foreground Illumination 0','Mean Foreground Illumination 1'], 'Mean Foreground Illumination 1', data)
 
 
