@@ -6,7 +6,8 @@ def meanLuminance(grayImg, kp=None):
 
 def contrast(grayImg, kp=None):
     minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(grayImg)
-    return np.Array([minVal, maxVal])
+    # return np.Array([minVal, maxVal])
+    return (maxVal - minVal)
 
 def weightedLuminance(grayImg, kp=None):
     """
@@ -31,6 +32,15 @@ def featureLuminance(grayImg, kp):
         y = int(kp[i].pt[1]+.5)
         avg += grayImg[y,x]*1.0
     return avg/len(kp)
+def gaussianBlurfeatureLuminance(grayimg, kp):
+	avg = 0
+	blurImage = cv2.GuassianBlur(grayImg, 0, 5)
+    for i in range(len(kp)):
+        x = int(kp[i].pt[0]+.5)
+        y = int(kp[i].pt[1]+.5)
+        avg +=blurImage[y,x]*1.0
+    return avg/len(kp)
+
 
 def settingsToExposure(shutter, gain):
     return shutter*gain/16.0
@@ -43,4 +53,3 @@ def exposureToSettings(exposure):
     shutter = min(exposure, 531.0)
     gain = exposure / shutter * 16.0
     return shutter, gain
-

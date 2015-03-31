@@ -79,10 +79,14 @@ def findBaseline(grayImgs):
 	return baselinePosition,leftRight,sift,flann
 
 
-def determineBrightness(image):
+def determineBrightness(image, kp):
 	brightness=[]
-	brightness.append(cv2.mean(image)[0])
+	# struture of brightness - foreground, background, contrast, mean, featureLuminance, gaussian Blur
+	brightness.append(iF.weightedLuminance(image))
 	brightness.append(iF.contrast(image))
+	brightness.append(iF.meanLuminance(image))
+	brightness.append(iF.featureLuminance(image, kp))
+	brightness.append(iF.gaussianBlurfeatureLuminance(image, kp))
 	# first index mean, second contrast
 	return brightness
 
@@ -91,7 +95,7 @@ def findBestMatch(baselinePos, startVal, endVal, grayImages,sift,flann, leftRigh
 		print "Error - Incorrect function call"
 		return
 	keypointsBaseline,descriptorsBaseline = sift.detectAndCompute(grayImages[leftRight][baselinePos], None)
-	baselineBrightness = determineBrightness(grayImages[leftRight][baselinePos])
+	baselineBrightness = determineBrightness(grayImages[leftRight][baselinePos], keypointsBaseline)
 
 	matchImageQualities=[]
 	brightnessVals=[]
@@ -105,11 +109,13 @@ def findBestMatch(baselinePos, startVal, endVal, grayImages,sift,flann, leftRigh
 				matches = flann.knnMatch(descriptorsBaseline,descriptors,k=2)
 				efficiency = usableMatch(matches, keypoints, keypointsBaseline)
 				matchImageQualities.append(efficiency)
-				brightnessVal = determineBrightness(grayImages[1][c])
+				brightnessVal = determineBrightness(grayImages[1][c], keypoints)
 				# print str(c)+ "length of "+str(brightnessVal)
 				brightnessVals.append(brightnessVal)
 			else:
-				brightnessVals.append([0,0])
+				# brightnessVals.append([0,0])
+				# struture of brightness - foreground, background, contrast, mean, featureLuminance
+				brightnessVals.append([[0,0],0,0,0,0])
 				matchImageQualities.append([0,0])
 	
 	side=1
@@ -127,7 +133,8 @@ def findBestMatch(baselinePos, startVal, endVal, grayImages,sift,flann, leftRigh
 		precisionValues.append(precision)
 
 	print str(bestImage)+" is best image on side "+str(side)+" with "+str(matchImageQualities[bestImage%50][0])+ " matches"
-	bestBrightness = determineBrightness(grayImages[side][bestImage])
+	keypointsBest,descriptorsBest = sift.detectAndCompute(grayImages[side][bestImage], None)
+	bestBrightness = determineBrightness(grayImages[side][bestImage], keypointsBest)
 	allParamVals = [brightnessVals, matchImageQualities]
 	return bestImage,side, bestBrightness,baselineBrightness,allParamVals
 
@@ -164,7 +171,8 @@ def getCameraSettingsData(fileName):
 
 def initializeDataFrame():
 # create dataframe
-	df = pd.DataFrame( columns=('Shutter 0', 'Gain 0', 'Mean Illumination 0','Contrast 0', 'Shutter 1', 'Gain 1', 'Mean Illumination 1', 'Contrast 1','FileLocation', 'NumMatches') )
+	# df = pd.DataFrame( columns=('Shutter 0', 'Gain 0', 'Mean Illumination 0','Contrast 0', 'Shutter 1', 'Gain 1', 'Mean Illumination 1', 'Contrast 1','FileLocation', 'NumMatches') )
+	df = pd.DataFrame( columns=('Shutter 0', 'Gain 0', 'Mean Foreground Illumination 0', 'Mean BackGround Illumination 0','Contrast 0', 'Mean 0', 'Feature Luminance 0','Blur Luminance 0', 'Shutter 1', 'Gain 1', 'Mean Foreground Illumination 1', 'Mean BackGround Illumination 1', 'Contrast 1','Mean 1','Feature Luminance 1','Blur Luminance 1', 'FileLocation', 'NumMatches') )
 
 	return df
 
@@ -172,13 +180,14 @@ def saveOptimalSettingsVector(df, baselinePos,sideBaseline, bestPos, sideBest, o
 	
 	a=str(sideBaseline)
 	b = str(sideBest)
-	optimalPointsDf.loc[len(optimalPointsDf['Shutter 0'])] = ([df['Shutter '+a][baselinePos], df['Gain '+a][baselinePos], baselineBrightness[0], baselineBrightness[1], df['Shutter '+b][bestPos], df['Gain '+b][bestPos],bestBrightness[0], bestBrightness[1],folder,allParamVals[1][bestPos-i][0]])
-	
+	# optimalPointsDf.loc[len(optimalPointsDf['Shutter 0'])] = ([df['Shutter '+a][baselinePos], df['Gain '+a][baselinePos], baselineBrightness[0], baselineBrightness[1], df['Shutter '+b][bestPos], df['Gain '+b][bestPos],bestBrightness[0], bestBrightness[1],folder,allParamVals[1][bestPos-i][0]])
+	optimalPointsDf.loc[len(optimalPointsDf['Shutter 0'])] = ([df['Shutter '+a][baselinePos], df['Gain '+a][baselinePos], baselineBrightness[0][0],baselineBrightness[0][1], baselineBrightness[1],baselineBrightness[2], baselineBrightness[3],baselineBrightness[4], df['Shutter '+b][bestPos], df['Gain '+b][bestPos],bestBrightness[0][0], bestBrightness[0][1], bestBrightness[1],bestBrightness[2], bestBrightness[3],bestBrightness[4], folder,allParamVals[1][bestPos-i][0]])
+
 	return optimalPointsDf
 
 
 def initializeAllParamsDF():
-	df = pd.DataFrame( columns=('Shutter B', 'Gain B', 'Mean Illumination B', 'Contrast B', 'Shutter I', 'Gain I', 'Mean Illumination I', 'Contrast I', 'numFeatures I', 'numMatches B-I', 'name I', 'FileLocation'))
+	df = pd.DataFrame( columns=('Shutter B', 'Gain B', 'Mean ForeGround Illumination B', 'Mean Background Illumination B', 'Contrast B','Mean B', 'Feature Luminance B','Blur Luminance B', 'Shutter I', 'Gain I', 'Mean Foreground Illumination I','Mean Background Illumination I', 'Contrast I','Mean I', 'Feature Luminance I','Blur Luminance I' 'numFeatures I', 'numMatches B-I', 'name I', 'FileLocation'))
 	return df
 
 
@@ -188,7 +197,13 @@ def saveAllImageParameters(df, baselinePos, sideBaseline, allParamVals, dfParamV
 
 	for j in range(0, len(allParamVals[0])):
 		b = str(1)
-		dfParamVals.loc[len(dfParamVals['Shutter B'])] = ([ df['Shutter '+a][baselinePos], df['Gain '+a][baselinePos], baselineBrightness[0], baselineBrightness[1], df['Shutter '+b][j], df['Gain '+b][j], allParamVals[0][j][0], allParamVals[0][j][1], allParamVals[1][j][1], allParamVals[1][j][0], df['Image File '+b][j+x], folder])
+		# dfParamVals.loc[len(dfParamVals['Shutter B'])] = ([ df['Shutter '+a][baselinePos], df['Gain '+a][baselinePos], baselineBrightness[0], baselineBrightness[1], df['Shutter '+b][j], df['Gain '+b][j], allParamVals[0][j][0], allParamVals[0][j][1], allParamVals[1][j][1], allParamVals[1][j][0], df['Image File '+b][j+x], folder])
+		# print "error checking"
+		# print baselineBrightness[0][0]
+		# print baselineBrightness[0][1]
+		# print allParamVals[0][j][0][0]
+		# print allParamVals[0][j][0][1]
+		dfParamVals.loc[len(dfParamVals['Shutter B'])] = ([ df['Shutter '+a][baselinePos], df['Gain '+a][baselinePos], baselineBrightness[0][0], baselineBrightness[0][1], baselineBrightness[1], baselineBrightness[2], baselineBrightness[3], baselineBrightness[4], df['Shutter '+b][j], df['Gain '+b][j], allParamVals[0][j][0][0], allParamVals[0][j][0][1], allParamVals[0][j][1], allParamVals[0][j][2], allParamVals[0][j][3], allParamVals[0][j][4], allParamVals[1][j][1], allParamVals[1][j][0], df['Image File '+b][j+x], folder])
 
 	return dfParamVals
 
@@ -222,37 +237,41 @@ def addToCSV(fileName, optPointsData):
 		print "creating new CSV"
 		optPointsData.to_csv(fileName)
 
+def addExposure(filename):
+	data = getCameraSettingsData(filename)
+	data['Exposure 0'] = data['Shutter 0']* data['Gain 0']/16.0
+	data['Exposure 1'] = data['Shutter 1']*data['Gain 1']/16.0
+	return data
+
 #using statsmodels.api library
-def leastSquaresRegression(fileName, optParam,independParam, Xparam):
+# def leastSquaresRegression(fileName, optParam,independParam, Xparam, data):
 	
-	data = getCameraSettingsData(fileName)
-	X = data[independParam]
-	Y = data[optParam] #- data['Shutter 0']
-	data.head()
-	X = sm.add_constant(X)
-	est = sm.OLS(Y,X).fit()
-	print('Parameters: ', est.params)
-	print('Standard errors: ', est.bse)
-	print('Predicted values: ', est.predict())
+# 	X = data[independParam]
+# 	Y = data[optParam] #- data['Shutter 0']
+# 	data.head()
+# 	X = sm.add_constant(X)
+# 	est = sm.OLS(Y,X).fit()
+# 	print('Parameters: ', est.params)
+# 	print('Standard errors: ', est.bse)
+# 	print('Predicted values: ', est.predict())
 
-	prstd, iv_l, iv_u = wls_prediction_std(est)
+# 	prstd, iv_l, iv_u = wls_prediction_std(est)
 
-	fig, ax = plt.subplots(figsize=(8,6))
+# 	fig, ax = plt.subplots(figsize=(8,6))
 
-	ax.plot(X[Xparam], Y, 'o', label="Training Data")
-	# ax.plot(X[Xparam]- X['Illumination 0'], est.fittedvalues, 'r--.', label="Least Squares")
-	ax.legend(loc='best')
-	plt.suptitle("Regression for Predicted Shutter Speed")
-	plt.ylabel('Predicted Shutter Speed ')
-	plt.xlabel('Mean Illumination of Best Image')
-	plt.ylim([0,600])
-	plt.show()
+# 	ax.plot(X[Xparam], Y, 'o', label="Training Data")
+# 	# ax.plot(X[Xparam]- X['Illumination 0'], est.fittedvalues, 'r--.', label="Least Squares")
+# 	ax.legend(loc='best')
+# 	plt.suptitle("Regression for Predicted Shutter Speed")
+# 	plt.ylabel('Predicted Shutter Speed ')
+# 	plt.xlabel('Mean Illumination of Best Image')
+# 	plt.ylim([0,600])
+# 	plt.show()
  
-	pickle.dump( est, open( "regression.p", "wb" ) )
-	return est.summary()
-def differencesLeastSquaresRegression(fileName, optParam,independParam, Xparam):
+# 	pickle.dump( est, open( "regression.p", "wb" ) )
+# 	return est.summary()
+def differencesLeastSquaresRegression(fileName, optParam,independParam, Xparam, data):
 	
-	data = getCameraSettingsData(fileName)
 	X = data[independParam]
 	Y = data[optParam] #- data['Shutter 0']
 	data.head()
@@ -266,7 +285,7 @@ def differencesLeastSquaresRegression(fileName, optParam,independParam, Xparam):
 
 	fig, ax = plt.subplots(figsize=(8,6))
 
-	ax.plot(X[Xparam]-X['Mean Illumination 0'], Y, 'o', label="Training Data")
+	ax.plot(X[Xparam]-X['Feature Luminance 0'], Y, 'o', label="Training Data")
 	# ax.plot(X[Xparam]- X['Illumination 0'], est.fittedvalues, 'r--.', label="Least Squares")
 	ax.legend(loc='best')
 	plt.suptitle("Regression for Predicted Shutter Speed")
@@ -275,7 +294,7 @@ def differencesLeastSquaresRegression(fileName, optParam,independParam, Xparam):
 	plt.ylim([0,600])
 	plt.show()
  
-	pickle.dump( est, open( "regression.p", "wb" ) )
+	pickle.dump( est, open( "feature_luminance_regression.p", "wb" ) )
 	return est.summary()
 
 def runTests(start, end):
@@ -290,50 +309,47 @@ def runTests(start, end):
 		optPointsdf = initializeDataFrame()
 		dfParamVals = initializeAllParamsDF()
 		optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
-		addToCSV('optimalPoints.csv', optPointsdf)
-		addToCSV('allParamterValues.csv', dfParamVals)
+		addToCSV('optimalPointsWmask.csv', optPointsdf)
+		addToCSV('allParamterValuesWmask.csv', dfParamVals)
 		i=j+1
 	# print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Mean Illumination 0', 'Mean Illumination 1'],'Mean Illumination 1' )
 
 
 
-# runTests(0,499) #10
-# print "finished 10"
-# runTests(650,899) #5
-# print "finished 15"
-# runTests(950,1299) #7
-# print finished "22"
-# runTests(1450,1499) #1
-# runTests(1550,1599) #1
+runTests(0,499) #10
+print "finished 10"
+runTests(650,899) #5
+print "finished 15"
+runTests(950,1299) #7
+print "finished 22"
+runTests(1450,1499) #1
+runTests(1550,1599) #1
 
 
-# grays0, missedPictures0, folder = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_0_', 0,99)
-# grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_1_', 0,99)
-# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
-# baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-# data = getCameraSettingsData('2015-02-22TNQ_1/2015-02-22TNQ_rawdata.csv')
-# optPointsdf = initializeDataFrame()
-# dfParamVals = initializeAllParamsDF()
-# optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
-# addToCSV('allParamterValues.csv', dfParamVals)
-# addToCSV('optimalPoints.csv', optPointsdf)
+grays0, missedPictures0, folder = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_0_', 0,99)
+grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_1_', 0,99)
+picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+data = getCameraSettingsData('2015-02-22TNQ_1/2015-02-22TNQ_rawdata.csv')
+optPointsdf = initializeDataFrame()
+dfParamVals = initializeAllParamsDF()
+optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
+addToCSV('allParamterValuesWmask.csv', dfParamVals)
+addToCSV('optimalPointsWmask.csv', optPointsdf)
 
 
 
-# grays0, missedPictures0, folder = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_0_', 0,349)
-# grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_1_', 0,349)
-# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
-# baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-# data = getCameraSettingsData('2015-02-22TNQ_0/2015-02-22TNQ_rawdata.csv')
-# optPointsdf = initializeDataFrame()
-# dfParamVals = initializeAllParamsDF()
-# optPointsdf,dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder,dfParamVals)
+grays0, missedPictures0, folder = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_0_', 0,349)
+grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_1_', 0,349)
+picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+data = getCameraSettingsData('2015-02-22TNQ_0/2015-02-22TNQ_rawdata.csv')
+optPointsdf = initializeDataFrame()
+dfParamVals = initializeAllParamsDF()
+optPointsdf,dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder,dfParamVals)
 
-# addToCSV('allParamterValues.csv', dfParamVals)
-# addToCSV('optimalPoints.csv', optPointsdf)
-
-print differencesLeastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Mean Illumination 0', 'Mean Illumination 1'],'Mean Illumination 1')
-
+addToCSV('allParamterValuesWmask.csv', dfParamVals)
+addToCSV('optimalPointsWmask.csv', optPointsdf)
 
 
 def runTests64(start, end):
@@ -348,10 +364,16 @@ def runTests64(start, end):
 		optPointsdf = initializeDataFrame()
 		dfParamVals = initializeAllParamsDF()
 		optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 62, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
-		addToCSV('optimalPoints.csv', optPointsdf)
-		addToCSV('allParamterValues.csv', dfParamVals)
+		addToCSV('optimalPointsWmask.csv', optPointsdf)
+		addToCSV('allParamterValuesWmask.csv', dfParamVals)
 		i=j+2
 # skip 0,128,512
-# runTests64(64,127)
-# runTests(192,511)
-# runTests64(576,1279)
+runTests64(64,127)
+runTests(192,511)
+runTests64(576,1279)
+
+# data = addExposure('optimalPointsWmask.csv')
+# # print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0', 'Mean 0', 'Mean 1'],'Mean 1', data)
+# print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0', 'Feature Luminance 0', 'Feature Luminance 1'],'Feature Luminance 1', data)
+
+
