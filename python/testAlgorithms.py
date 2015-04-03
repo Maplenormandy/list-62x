@@ -6,6 +6,7 @@ import time, sys, os, shutil
 import yaml
 from multiprocessing import Process, Queue
 from Queue import Empty
+import random
 
 """
 # This script collects data
@@ -115,6 +116,33 @@ def setCap0Auto(x):
 def setCap1Auto(x):
     cap1.set(21,x)
 
+def findSettings(oldSettings, oldFeatures, newFeatures):
+    oldShutter, oldGain = oldSettings
+    newShutter = 1.0
+    newGain = 16.0
+    return newShutter, newGain
+
+def usableMatch(matches, keypoints, keypointsBaseline):
+	correctMatches = []
+	minAmmount = 5
+	srcPts=[]
+	dstPts=[]
+	for m,n in matches:
+		if m.distance <.75*n.distance:
+			correctMatches.append(m)
+	if len(correctMatches)>minAmmount:
+		dst_pts = np.float32([ keypoints[m.trainIdx].pt for m in correctMatches ])
+		src_pts = np.float32([ keypointsBaseline[m.queryIdx].pt for m in correctMatches ])
+		ransacMatches, mask= cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+		matchesMask = mask.ravel().tolist()
+
+		matchesMask = np.array(matchesMask)
+		numMatches = (matchesMask>.5).sum()
+		efficiency = [numMatches, len(keypoints)]
+	else:
+		efficiency = [0, len(keypoints)]
+	return efficiency
+
 """
 if not collectData:
     cv2.createTrackbar('Shutter Baseline', 'frame', 1, 531, setCap0Exposure)
@@ -126,8 +154,22 @@ if not collectData:
 # Helper variables
 t = 0
 i = 0
+runNum = 0
+startT = 0
+
+oldGray0 = None
+oldGray1 = None
+
+baselineCam0 = True
 
 writing = False
+resetRun = False
+
+surf = cv2.SURF()
+index_params = dict(algorithm = 0, trees = 5)
+search_params = dict(checks=50)
+
+flann = cv2.FlannBasedMatcher(index_params, search_params)
 
 if cap0.isOpened() and cap1.isOpened():
     q = Queue()
@@ -152,30 +194,80 @@ if cap0.isOpened() and cap1.isOpened():
         if ret0 and ret1:
             frame0 = cv2.cvtColor(frame0, cv2.COLOR_BAYER_BG2BGR)
             frame1 = cv2.cvtColor(frame1, cv2.COLOR_BAYER_BG2BGR)
-            disp = np.concatenate((frame0, frame1), axis=1)
 
-            if writing:
-                data.loc[t, 'Timestamp'] = currentTimestamp()
+            if writing and i > 6:
+                disp = np.concatenate((frame0, frame1), axis=1)
 
-                data.loc[t, 'Shutter 0'] = cap0.get(15)
-                data.loc[t, 'Gain 0'] = cap0.get(14)
+                gray0 = cv2.cvtColor(frame0, cv2.COLOR_BGR2GRAY)
+                gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
 
-                data.loc[t, 'Shutter 1'] = cap1.get(15)
-                data.loc[t, 'Gain 1'] = cap1.get(14)
+                # Calculate SURF features
+                kp0, desc0 = surf.detectAndCompute(gray0, None)
+                kp1, desc1 = surf.detectAndCompute(gray1, None)
 
-                if i > 6:
+                if oldGray0 != None:
+
+                    # Save raw data
+                    data.loc[t, 'Timestamp'] = currentTimestamp()
+                    data.loc[t, 'Run Number'] = runNum
+                    data.loc[t, 'Baseline'] = 0 if baselineCam0 else 1
+
+                    data.loc[t, 'Shutter 0'] = cap0.get(15)
+                    data.loc[t, 'Gain 0'] = cap0.get(14)
+
+                    data.loc[t, 'Shutter 1'] = cap1.get(15)
+                    data.loc[t, 'Gain 1'] = cap1.get(14)
+
                     imgname0 = shortname + '_0_{:0>4d}.png'.format(t)
                     data.loc[t, 'Image File 0'] = imgname0
                     imgname1 = shortname + '_1_{:0>4d}.png'.format(t)
                     data.loc[t, 'Image File 1'] = imgname1
                     q.put((imgname0, frame0))
                     q.put((imgname1, frame1))
-                    i = 0
-                else:
-                    pass
 
-                t += 1
+                    succTrackFeatures0 = 0
+                    succTrackFeatures1 = 0
 
+                    # Calculate number of successful matches
+                    if desc0 != None and oldDesc0 != None:
+                        matches = flann.knnMatch(oldDesc0, desc0, k=2)
+                    efficiency0 = useableMatch(matches, kp0, oldKp0)
+                    succTrackFeatures0 = efficiency0[0]
+                    data.loc[t, 'Succesfully Tracked Features 0'] = succTrackFeatures0
+
+                    if desc1 != None and oldDesc1 != None:
+                        matches = flann.knnMatch(oldDesc1, desc1, k=2)
+                    efficiency1 = useableMatch(matches, kp1, oldKp1)
+                    succTrackFeatures1 = efficiency1[0]
+                    data.loc[t, 'Succesfully Tracked Features 1'] = succTrackFeatures1
+
+                    # Calculate image features
+
+                    # Determine new image settings
+                    if baselineCam0:
+                        cap0.set(14, 16.0)
+                        cap0.set(15, 1.0)
+                    else:
+                        cap1.set(14, 16.0)
+                        cap1.set(15, 1.0)
+
+
+                    t += 1
+
+                oldGray0 = gray0
+                oldGray1 = gray1
+
+                oldKp0 = kp0
+                oldKp1 = kp1
+                oldDesc0 = desc0
+                oldDesc1 = desc1
+
+                i = 0
+
+            cv2.putText(disp, "Frame: " + str(t-startT), (50,50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255))
+            cv2.putText(disp, "Baseline: " + ("0" if baselineCam0 else "1"), (50,80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255))
             cv2.imshow('frame', disp)
 
 
@@ -187,11 +279,32 @@ if cap0.isOpened() and cap1.isOpened():
 
         if key == ord('q'):
             break
+        # The order is to press 'w' when starting a run, then press 'r' to do it again in a pair
         elif key == ord('w'):
-            writing = True
-            i = 0
-        elif key == ord('e'):
+            baselineCam0 = random.choice((True, False))
+            resetRun = True
+        elif key == ord('r'):
+            baselineCam0 = not baselineCam0
+            resetRun = True
+        elif key == ord('s'):
             writing = False
+            runNum += 1
+
+        if resetRun:
+            resetRun = False
+            writing = True
+            startT = t
+            oldGray0 = None
+            oldGray1 = None
+            i = 0
+
+            # Turn on auto exposure
+            if baselineCam0:
+                cap0.set(14, -2)
+                cap0.set(15, -2)
+            else:
+                cap1.set(14, -2)
+                cap1.set(15, -2)
 
 q.put(False)
 
