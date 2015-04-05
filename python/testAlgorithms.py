@@ -7,6 +7,7 @@ import yaml
 from multiprocessing import Process, Queue
 from Queue import Empty
 import random
+import imageFeatures as imf
 
 """
 # This script collects data
@@ -120,6 +121,14 @@ def findSettings(oldSettings, oldFeatures, newFeatures):
     oldShutter, oldGain = oldSettings
     newShutter = 1.0
     newGain = 16.0
+
+    oldMeanLum = oldFeatures
+    newMeanLum = newFeatures
+
+    oldExposure = imf.settingsToExposure(oldShutter, oldGain)
+
+    newExposure = 25.8578 + 0.6773*oldExposure - 5.1841*oldMeanLum + 6.7507*newMeanLum
+
     return newShutter, newGain
 
 def usableMatch(matches, keypoints, keypointsBaseline):
@@ -157,25 +166,76 @@ i = 0
 runNum = 0
 startT = 0
 
-oldGray0 = None
-oldGray1 = None
-
-baselineCam0 = True
+expCam0 = True
 
 writing = False
 resetRun = False
 
-surf = cv2.SURF()
 index_params = dict(algorithm = 0, trees = 5)
 search_params = dict(checks=50)
 
-flann = cv2.FlannBasedMatcher(index_params, search_params)
+def surfDetectAndMatch(name, q, dq):
+    surf = cv2.SURF()
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+    oldFrame = None
+
+    oldKp = None
+    oldDesc = None
+
+    while True:
+        newFrame = None
+        try:
+            newFrame = q.get(True, 1)
+            print name + ": " + str(q.qsize()) + " left"
+        except Empty:
+            if oldFrame != None:
+                print name + ": Resetting"
+                oldFrame = None
+
+        if newFrame != None:
+            if newFrame == False:
+                dq.close()
+                print name + ": Done"
+                break
+
+            kp, desc = surf.detectAndCompute(newFrame[1], None)
+
+            if oldFrame != None:
+                if newFrame[0] == oldFrame[0]:
+                    print name + ": New run detected"
+                elif newFrame[0]-oldFrame[0] > 1:
+                    print name + ": Warning, t mismatch!"
+
+                succTrackFeatures = 0
+                if desc != None and oldDesc != None:
+                    matches = flann.knnMatch(oldDesc, desc, k=2)
+                    efficiency = usableMatch(matches, kp, oldKp)
+                    succTrackFeatures = efficiency[0]
+
+                dq.put((newFrame[0], succTrackFeatures))
+
+
+
+            oldFrame = newFrame
+            oldKp = kp
+            oldDesc = desc
+
+
 
 if cap0.isOpened() and cap1.isOpened():
     q = Queue()
     p = Process(target=imageSaver, args=(foldername, q,))
 
+    q0 = Queue()
+    dq0 = Queue()
+    p0 = Process(target=surfDetectAndMatch, args=("SDAM 0", q0, dq0,))
+    q1 = Queue()
+    dq1 = Queue()
+    p1 = Process(target=surfDetectAndMatch, args=("SDAM 1", q1, dq1,))
+
     p.start()
+    p0.start()
+    p1.start()
 
     """
     if not collectData:
@@ -195,22 +255,44 @@ if cap0.isOpened() and cap1.isOpened():
             frame0 = cv2.cvtColor(frame0, cv2.COLOR_BAYER_BG2BGR)
             frame1 = cv2.cvtColor(frame1, cv2.COLOR_BAYER_BG2BGR)
 
-            if writing and i > 6:
-                disp = np.concatenate((frame0, frame1), axis=1)
+            disp = np.concatenate((frame0, frame1), axis=1)
 
+
+            try:
+                t0, succTrackFeatures0 = dq0.get_nowait()
+                data.loc[t0, 'Succesfully Tracked Features 0'] = succTrackFeatures0
+            except Empty:
+                pass
+
+            try:
+                t1, succTrackFeatures1 = dq1.get_nowait()
+                data.loc[t1, 'Succesfully Tracked Features 1'] = succTrackFeatures1
+            except Empty:
+                pass
+
+            if writing and i > 6:
                 gray0 = cv2.cvtColor(frame0, cv2.COLOR_BGR2GRAY)
                 gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
 
-                # Calculate SURF features
-                kp0, desc0 = surf.detectAndCompute(gray0, None)
-                kp1, desc1 = surf.detectAndCompute(gray1, None)
+                q0.put((t, gray0))
+                q1.put((t, gray1))
+
+                # Calculate image features
+                if expCam0:
+                    meanLum = imf.meanLuminance(gray0)
+                    camSettings = (cap0.get(15), cap0.get(14))
+                else:
+                    meanLum = imf.meanLuminance(gray1)
+                    camSettings = (cap1.get(15), cap1.get(14))
 
                 if oldGray0 != None:
 
                     # Save raw data
                     data.loc[t, 'Timestamp'] = currentTimestamp()
                     data.loc[t, 'Run Number'] = runNum
-                    data.loc[t, 'Baseline'] = 0 if baselineCam0 else 1
+                    data.loc[t, 'Baseline'] = 1 if expCam0 else 0
+
+                    data.loc[t, 'Experimental Mean Luminance'] = meanLum
 
                     data.loc[t, 'Shutter 0'] = cap0.get(15)
                     data.loc[t, 'Gain 0'] = cap0.get(14)
@@ -225,48 +307,30 @@ if cap0.isOpened() and cap1.isOpened():
                     q.put((imgname0, frame0))
                     q.put((imgname1, frame1))
 
-                    succTrackFeatures0 = 0
-                    succTrackFeatures1 = 0
 
-                    # Calculate number of successful matches
-                    if desc0 != None and oldDesc0 != None:
-                        matches = flann.knnMatch(oldDesc0, desc0, k=2)
-                    efficiency0 = useableMatch(matches, kp0, oldKp0)
-                    succTrackFeatures0 = efficiency0[0]
-                    data.loc[t, 'Succesfully Tracked Features 0'] = succTrackFeatures0
-
-                    if desc1 != None and oldDesc1 != None:
-                        matches = flann.knnMatch(oldDesc1, desc1, k=2)
-                    efficiency1 = useableMatch(matches, kp1, oldKp1)
-                    succTrackFeatures1 = efficiency1[0]
-                    data.loc[t, 'Succesfully Tracked Features 1'] = succTrackFeatures1
-
-                    # Calculate image features
+                    newShutter, newGain = findSettings(oldCamSettings, oldMeanLum, meanLum)
 
                     # Determine new image settings
-                    if baselineCam0:
-                        cap0.set(14, 16.0)
-                        cap0.set(15, 1.0)
+                    if expCam0:
+                        cap0.set(14, newGain)
+                        cap0.set(15, newShutter)
                     else:
-                        cap1.set(14, 16.0)
-                        cap1.set(15, 1.0)
-
+                        cap1.set(14, newGain)
+                        cap1.set(15, newShutter)
 
                     t += 1
 
                 oldGray0 = gray0
                 oldGray1 = gray1
 
-                oldKp0 = kp0
-                oldKp1 = kp1
-                oldDesc0 = desc0
-                oldDesc1 = desc1
+                oldMeanLum = meanLum
+                oldCamSettings = camSettings
 
                 i = 0
 
             cv2.putText(disp, "Frame: " + str(t-startT), (50,50),
                     cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255))
-            cv2.putText(disp, "Baseline: " + ("0" if baselineCam0 else "1"), (50,80),
+            cv2.putText(disp, "Baseline: " + ("1" if expCam0 else "0"), (50,80),
                     cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255))
             cv2.imshow('frame', disp)
 
@@ -281,10 +345,10 @@ if cap0.isOpened() and cap1.isOpened():
             break
         # The order is to press 'w' when starting a run, then press 'r' to do it again in a pair
         elif key == ord('w'):
-            baselineCam0 = random.choice((True, False))
+            expCam0 = random.choice((True, False))
             resetRun = True
         elif key == ord('r'):
-            baselineCam0 = not baselineCam0
+            expCam0 = not expCam0
             resetRun = True
         elif key == ord('s'):
             writing = False
@@ -298,18 +362,25 @@ if cap0.isOpened() and cap1.isOpened():
             oldGray1 = None
             i = 0
 
-            # Turn on auto exposure
-            if baselineCam0:
-                cap0.set(14, -2)
-                cap0.set(15, -2)
-            else:
-                cap1.set(14, -2)
-                cap1.set(15, -2)
+            # To start off, set auto-exposure
+            cap0.set(14, -2)
+            cap0.set(15, -2)
+
+            cap1.set(14, -2)
+            cap1.set(15, -2)
 
 q.put(False)
+q0.put(False)
+q1.put(False)
 
 q.close()
+dq0.close()
+dq1.close()
+q0.close()
+q1.close()
 p.join()
+p0.join()
+p1.join()
 
 if len(data) > 0:
     data.to_csv(foldername + '/' + shortname + '_rawdata.csv')
