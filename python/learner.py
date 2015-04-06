@@ -56,7 +56,6 @@ def findBaseline(grayImgs):
 	FLANN_INDEX_KDTREE = 0
 	index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
 	search_params = dict(checks=50)   # or pass empty dictionary
-
 	flann = cv2.FlannBasedMatcher(index_params,search_params)
 
 	maxKeypoints = 0 
@@ -66,12 +65,16 @@ def findBaseline(grayImgs):
 
 	for e in range(0, len(grayImgs[0])):
 		keypoints, descriptors = sift.detectAndCompute(grayImgs[0][e], None)
-		imgKeypoints.append(keypoints)
+		imgKeypoints.append((len(keypoints),e))
 		imgDescriptors.append(descriptors)
 		if (len(keypoints) > maxKeypoints):
 			leftRight = 0
 			baselinePosition = e
 			maxKeypoints = len(keypoints)
+	sortedList = sorted(imgKeypoints,key=lambda y:y[0])
+	baselinePosition = sortedList[len(sortedList) - 5][1]
+	maxKeypoints = sortedList[len(sortedList)-5][0]
+	# print sortedList
 	
 	print "baseline picture is "+str(baselinePosition)+" on side "+str(leftRight)
 	print "it has "+ str(maxKeypoints)+" features"
@@ -270,6 +273,82 @@ def addExposure(filename):
  
 # 	pickle.dump( est, open( "regression.p", "wb" ) )
 # 	return est.summary()
+
+
+def runTests(start, end):
+	i=start
+	while (i<=end):
+		j = i+49
+		grays0, missedPictures0, folder = prepData('csail03-08-15_0/','csail03-08-15_0_', i,j)
+		grays1, missedPictures1, folder1 = prepData('csail03-08-15_0/','csail03-08-15_1_', i,j)
+		picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+		baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+		data = getCameraSettingsData('csail03-08-15_0/csail03-08-15_rawdata.csv')
+		optPointsdf = initializeDataFrame()
+		dfParamVals = initializeAllParamsDF()
+		optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
+		addToCSV('optimalPointsWmask_16s.csv', optPointsdf)
+		# addToCSV('allParamterValuesWmask.csv', dfParamVals)
+		i=j+1
+	# print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Mean Illumination 0', 'Mean Illumination 1'],'Mean Illumination 1' )
+
+
+
+# runTests(0,499) #10
+# print "finished 10"
+# runTests(650,899) #5
+# print "finished 15"
+# runTests(950,1299) #7
+# print "finished 22"
+# runTests(1450,1499) #1
+# runTests(1550,1599) #1
+
+
+# grays0, missedPictures0, folder = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_0_', 0,99)
+# grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_1_', 0,99)
+# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+# baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+# data = getCameraSettingsData('2015-02-22TNQ_1/2015-02-22TNQ_rawdata.csv')
+# optPointsdf = initializeDataFrame()
+# dfParamVals = initializeAllParamsDF()
+# optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
+# # addToCSV('allParamterValuesWmask.csv', dfParamVals)
+# addToCSV('optimalPointsWmask_16s.csv', optPointsdf)
+
+
+
+# grays0, missedPictures0, folder = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_0_', 0,349)
+# grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_1_', 0,349)
+# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+# baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+# data = getCameraSettingsData('2015-02-22TNQ_0/2015-02-22TNQ_rawdata.csv')
+# optPointsdf = initializeDataFrame()
+# dfParamVals = initializeAllParamsDF()
+# optPointsdf,dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder,dfParamVals)
+
+# # addToCSV('allParamterValuesWmask.csv', dfParamVals)
+# addToCSV('optimalPointsWmask_16s.csv', optPointsdf)
+
+
+def runTests64(start, end):
+	i=start
+	while (i<=end):
+		j = i+62
+		grays0, missedPictures0, folder = prepData('2015-03-14gelb_2/','2015-03-14gelb_0_', i,j)
+		grays1, missedPictures1, folder1 = prepData('2015-03-14gelb_2/','2015-03-14gelb_1_', i,j)
+		picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
+		baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
+		data = getCameraSettingsData('2015-03-14gelb_2/2015-03-14gelb_rawdata.csv')
+		optPointsdf = initializeDataFrame()
+		dfParamVals = initializeAllParamsDF()
+		optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 62, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
+		addToCSV('optimalPointsWmask.csv', optPointsdf)
+		addToCSV('allParamterValuesWmask.csv', dfParamVals)
+		i=j+2
+# skip 0,128,512
+# runTests64(64,127)
+# runTests64(192,511)
+# runTests64(576,1279)
 def differencesLeastSquaresRegression(fileName, optParam,independParam, Xparam, data):
 	
 	X = data[independParam]
@@ -294,87 +373,12 @@ def differencesLeastSquaresRegression(fileName, optParam,independParam, Xparam, 
 	# plt.ylim([0,600])
 	# plt.show()
  
-	pickle.dump( est, open( "mean_foreground_luminance.p", "wb" ) )
+	pickle.dump( est, open( "blur_luminance.p", "wb" ) )
 	return est.summary()
 
-def runTests(start, end):
-	i=start
-	while (i<=end):
-		j = i+49
-		grays0, missedPictures0, folder = prepData('csail03-08-15_0/','csail03-08-15_0_', i,j)
-		grays1, missedPictures1, folder1 = prepData('csail03-08-15_0/','csail03-08-15_1_', i,j)
-		picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
-		baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-		data = getCameraSettingsData('csail03-08-15_0/csail03-08-15_rawdata.csv')
-		optPointsdf = initializeDataFrame()
-		dfParamVals = initializeAllParamsDF()
-		optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
-		addToCSV('optimalPointsWmask.csv', optPointsdf)
-		addToCSV('allParamterValuesWmask.csv', dfParamVals)
-		i=j+1
-	# print leastSquaresRegression('optimalPoints.csv','Shutter 1', ['Shutter 0','Gain 0', 'Mean Illumination 0', 'Mean Illumination 1'],'Mean Illumination 1' )
-
-
-
-# runTests(0,499) #10
-# print "finished 10"
-# runTests(650,899) #5
-# print "finished 15"
-# runTests(950,1299) #7
-# print "finished 22"
-# runTests(1450,1499) #1
-# runTests(1550,1599) #1
-
-
-# grays0, missedPictures0, folder = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_0_', 0,99)
-# grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_1/','2015-02-22TNQ_1_', 0,99)
-# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
-# baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-# data = getCameraSettingsData('2015-02-22TNQ_1/2015-02-22TNQ_rawdata.csv')
-# optPointsdf = initializeDataFrame()
-# dfParamVals = initializeAllParamsDF()
-# optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
-# addToCSV('allParamterValuesWmask.csv', dfParamVals)
-# addToCSV('optimalPointsWmask.csv', optPointsdf)
-
-
-
-# grays0, missedPictures0, folder = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_0_', 0,349)
-# grays1, missedPictures1, folder1 = prepData('2015-02-22TNQ_0/','2015-02-22TNQ_1_', 0,349)
-# picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
-# baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-# data = getCameraSettingsData('2015-02-22TNQ_0/2015-02-22TNQ_rawdata.csv')
-# optPointsdf = initializeDataFrame()
-# dfParamVals = initializeAllParamsDF()
-# optPointsdf,dfParamVals  = iterateThruData(baselinePos,sideBaseline, 49, picData[0],sift, flann,optPointsdf,data, folder,dfParamVals)
-
-# addToCSV('allParamterValuesWmask.csv', dfParamVals)
-# addToCSV('optimalPointsWmask.csv', optPointsdf)
-
-
-def runTests64(start, end):
-	i=start
-	while (i<=end):
-		j = i+62
-		grays0, missedPictures0, folder = prepData('2015-03-14gelb_2/','2015-03-14gelb_0_', i,j)
-		grays1, missedPictures1, folder1 = prepData('2015-03-14gelb_2/','2015-03-14gelb_1_', i,j)
-		picData = checkPictures([grays0,grays1], [missedPictures0, missedPictures1])
-		baselinePos,sideBaseline, sift, flann = findBaseline(picData[0])
-		data = getCameraSettingsData('2015-03-14gelb_2/2015-03-14gelb_rawdata.csv')
-		optPointsdf = initializeDataFrame()
-		dfParamVals = initializeAllParamsDF()
-		optPointsdf, dfParamVals  = iterateThruData(baselinePos,sideBaseline, 62, picData[0],sift, flann,optPointsdf,data, folder, dfParamVals)
-		addToCSV('optimalPointsWmask.csv', optPointsdf)
-		addToCSV('allParamterValuesWmask.csv', dfParamVals)
-		i=j+2
-# skip 0,128,512
-# runTests64(64,127)
-# runTests64(192,511)
-# runTests64(576,1279)
-
-data = addExposure('optimalPointsWmask.csv')
-# print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0', 'Mean 0', 'Mean 1'],'Mean 1', data)
-# print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0', 'Mean Foreground Illumination 0','Mean BackGround Illumination 0','Mean BackGround Illumination 1', 'Mean Foreground Illumination 1'],'Mean Foreground Illumination 1', data)
-print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0','Mean Foreground Illumination 0','Mean Foreground Illumination 1'], 'Mean Foreground Illumination 1', data)
-
+data = addExposure('optimalPointsWmask_16s.csv')
+# print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0', 'Mean 0', 'Mean 1', 'Contrast 0', 'Contrast 1'],'Mean 1', data)
+# print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0', 'Mean Foreground Illumination 0', 'Mean Foreground Illumination 1'],'Mean Foreground Illumination 1', data)
+print differencesLeastSquaresRegression('optimalPointsWmask_16s.csv','Exposure 1', ['Exposure 0','Blur Luminance 0','Blur Luminance 1'], 'Blur Luminance 1', data)
+# print differencesLeastSquaresRegression('optimalPointsWmask.csv','Exposure 1', ['Exposure 0', 'Mean 0', 'Mean 1', 'Contrast 0', 'Contrast 1'],'Mean 1', data)
 
