@@ -238,6 +238,12 @@ if cap0.isOpened() and cap1.isOpened():
     p0.start()
     p1.start()
 
+    # Turn off white balance
+    cap0.set(17, -4)
+    cap0.set(26, -4)
+    cap1.set(17, -4)
+    cap1.set(26, -4)
+
     """
     if not collectData:
         cv2.setTrackbarPos('Shutter Baseline', 'frame', int(cap0.get(15)))
