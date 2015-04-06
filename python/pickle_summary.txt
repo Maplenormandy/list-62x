@@ -1,0 +1,221 @@
+mean_luminance_w_gain_shutter.p
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:              Shutter 1   R-squared:                       0.843
+Model:                            OLS   Adj. R-squared:                  0.825
+Method:                 Least Squares   F-statistic:                     47.12
+Date:                Fri, 03 Apr 2015   Prob (F-statistic):           1.42e-16
+Time:                        17:56:52   Log-Likelihood:                -286.52
+No. Observations:                  50   AIC:                             585.0
+Df Residuals:                      44   BIC:                             596.5
+Df Model:                           5                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [95.0% Conf. Int.]
+------------------------------------------------------------------------------
+const        -12.7630     83.017     -0.154      0.879      -180.073   154.547
+Shutter 0      0.8357      0.136      6.134      0.000         0.561     1.110
+Gain 0        -0.5643      1.477     -0.382      0.704        -3.541     2.413
+Gain 1         1.3838      1.817      0.762      0.450        -2.277     5.045
+Mean 0        -2.3354      0.395     -5.916      0.000        -3.131    -1.540
+Mean 1         2.7578      0.302      9.121      0.000         2.148     3.367
+==============================================================================
+Omnibus:                        6.655   Durbin-Watson:                   2.042
+Prob(Omnibus):                  0.036   Jarque-Bera (JB):                5.558
+Skew:                          -0.711   Prob(JB):                       0.0621
+Kurtosis:                       3.805   Cond. No.                     3.78e+03
+==============================================================================
+
+Warnings:
+[1] The condition number is large, 3.78e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+------------------------------
+
+blur_luminance.p
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:             Exposure 1   R-squared:                       0.702
+Model:                            OLS   Adj. R-squared:                  0.683
+Method:                 Least Squares   F-statistic:                     36.12
+Date:                Fri, 03 Apr 2015   Prob (F-statistic):           3.75e-12
+Time:                        17:56:52   Log-Likelihood:                -351.42
+No. Observations:                  50   AIC:                             710.8
+Df Residuals:                      46   BIC:                             718.5
+Df Model:                           3                                         
+====================================================================================
+                       coef    std err          t      P>|t|      [95.0% Conf. Int.]
+------------------------------------------------------------------------------------
+const             -221.0576    222.277     -0.995      0.325      -668.477   226.362
+Exposure 0           0.6862      0.079      8.715      0.000         0.528     0.845
+Blur Luminance 0    -5.0883      1.636     -3.109      0.003        -8.382    -1.794
+Blur Luminance 1     8.0536      1.016      7.923      0.000         6.008    10.100
+==============================================================================
+Omnibus:                        1.004   Durbin-Watson:                   1.653
+Prob(Omnibus):                  0.605   Jarque-Bera (JB):                0.483
+Skew:                          -0.222   Prob(JB):                        0.785
+Kurtosis:                       3.185   Cond. No.                     5.28e+03
+==============================================================================
+
+Warnings:
+[1] The condition number is large, 5.28e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+------------------------------
+
+feature_luminance.p
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:             Exposure 1   R-squared:                       0.689
+Model:                            OLS   Adj. R-squared:                  0.668
+Method:                 Least Squares   F-statistic:                     33.93
+Date:                Fri, 03 Apr 2015   Prob (F-statistic):           1.01e-11
+Time:                        17:56:52   Log-Likelihood:                -352.50
+No. Observations:                  50   AIC:                             713.0
+Df Residuals:                      46   BIC:                             720.7
+Df Model:                           3                                         
+=======================================================================================
+                          coef    std err          t      P>|t|      [95.0% Conf. Int.]
+---------------------------------------------------------------------------------------
+const                -180.6879    224.587     -0.805      0.425      -632.757   271.382
+Exposure 0              0.6834      0.080      8.498      0.000         0.522     0.845
+Feature Luminance 0    -5.6048      1.720     -3.259      0.002        -9.067    -2.143
+Feature Luminance 1     8.2760      1.084      7.635      0.000         6.094    10.458
+==============================================================================
+Omnibus:                        2.280   Durbin-Watson:                   1.600
+Prob(Omnibus):                  0.320   Jarque-Bera (JB):                1.421
+Skew:                          -0.367   Prob(JB):                        0.491
+Kurtosis:                       3.377   Cond. No.                     5.22e+03
+==============================================================================
+
+Warnings:
+[1] The condition number is large, 5.22e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+------------------------------
+
+mean_background_luminance.p
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:             Exposure 1   R-squared:                       0.770
+Model:                            OLS   Adj. R-squared:                  0.755
+Method:                 Least Squares   F-statistic:                     51.32
+Date:                Fri, 03 Apr 2015   Prob (F-statistic):           1.02e-14
+Time:                        17:56:52   Log-Likelihood:                -344.94
+No. Observations:                  50   AIC:                             697.9
+Df Residuals:                      46   BIC:                             705.5
+Df Model:                           3                                         
+==================================================================================================
+                                     coef    std err          t      P>|t|      [95.0% Conf. Int.]
+--------------------------------------------------------------------------------------------------
+const                              4.2845    103.058      0.042      0.967      -203.160   211.729
+Exposure 0                         0.6793      0.073      9.362      0.000         0.533     0.825
+Mean BackGround Illumination 0    -5.1094      0.948     -5.391      0.000        -7.017    -3.202
+Mean BackGround Illumination 1     6.7512      0.694      9.732      0.000         5.355     8.148
+==============================================================================
+Omnibus:                        3.575   Durbin-Watson:                   1.775
+Prob(Omnibus):                  0.167   Jarque-Bera (JB):                2.554
+Skew:                          -0.391   Prob(JB):                        0.279
+Kurtosis:                       3.784   Cond. No.                     2.79e+03
+==============================================================================
+
+Warnings:
+[1] The condition number is large, 2.79e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+------------------------------
+
+mean_foreground_luminance.p
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:             Exposure 1   R-squared:                       0.760
+Model:                            OLS   Adj. R-squared:                  0.744
+Method:                 Least Squares   F-statistic:                     48.49
+Date:                Fri, 03 Apr 2015   Prob (F-statistic):           2.75e-14
+Time:                        17:56:52   Log-Likelihood:                -346.03
+No. Observations:                  50   AIC:                             700.1
+Df Residuals:                      46   BIC:                             707.7
+Df Model:                           3                                         
+==================================================================================================
+                                     coef    std err          t      P>|t|      [95.0% Conf. Int.]
+--------------------------------------------------------------------------------------------------
+const                             70.1767    128.910      0.544      0.589      -189.307   329.660
+Exposure 0                         0.6469      0.073      8.870      0.000         0.500     0.794
+Mean Foreground Illumination 0    -4.6182      1.001     -4.615      0.000        -6.633    -2.604
+Mean Foreground Illumination 1     6.0512      0.644      9.401      0.000         4.756     7.347
+==============================================================================
+Omnibus:                        0.391   Durbin-Watson:                   1.812
+Prob(Omnibus):                  0.822   Jarque-Bera (JB):                0.105
+Skew:                           0.108   Prob(JB):                        0.949
+Kurtosis:                       3.062   Cond. No.                     3.41e+03
+==============================================================================
+
+Warnings:
+[1] The condition number is large, 3.41e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+------------------------------
+
+mean_foreground_background_luminance.p
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:             Exposure 1   R-squared:                       0.782
+Model:                            OLS   Adj. R-squared:                  0.758
+Method:                 Least Squares   F-statistic:                     31.66
+Date:                Fri, 03 Apr 2015   Prob (F-statistic):           1.58e-13
+Time:                        17:56:52   Log-Likelihood:                -343.55
+No. Observations:                  50   AIC:                             699.1
+Df Residuals:                      44   BIC:                             710.6
+Df Model:                           5                                         
+==================================================================================================
+                                     coef    std err          t      P>|t|      [95.0% Conf. Int.]
+--------------------------------------------------------------------------------------------------
+const                             33.1850    126.970      0.261      0.795      -222.706   289.076
+Exposure 0                         0.6736      0.073      9.289      0.000         0.527     0.820
+Mean Foreground Illumination 0    -1.9733      1.815     -1.087      0.283        -5.632     1.685
+Mean BackGround Illumination 0    -3.1668      1.813     -1.747      0.088        -6.820     0.487
+Mean BackGround Illumination 1     3.9755      1.880      2.115      0.040         0.186     7.765
+Mean Foreground Illumination 1     2.7209      1.732      1.571      0.123        -0.769     6.211
+==============================================================================
+Omnibus:                        1.881   Durbin-Watson:                   1.818
+Prob(Omnibus):                  0.390   Jarque-Bera (JB):                1.034
+Skew:                          -0.259   Prob(JB):                        0.596
+Kurtosis:                       3.478   Cond. No.                     3.50e+03
+==============================================================================
+
+Warnings:
+[1] The condition number is large, 3.5e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+------------------------------
+
+mean_luminance.p
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:             Exposure 1   R-squared:                       0.781
+Model:                            OLS   Adj. R-squared:                  0.766
+Method:                 Least Squares   F-statistic:                     54.60
+Date:                Fri, 03 Apr 2015   Prob (F-statistic):           3.39e-15
+Time:                        17:56:52   Log-Likelihood:                -343.74
+No. Observations:                  50   AIC:                             695.5
+Df Residuals:                      46   BIC:                             703.1
+Df Model:                           3                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [95.0% Conf. Int.]
+------------------------------------------------------------------------------
+const         25.8578    107.855      0.240      0.812      -191.243   242.958
+Exposure 0     0.6773      0.071      9.552      0.000         0.535     0.820
+Mean 0        -5.1841      0.960     -5.399      0.000        -7.117    -3.251
+Mean 1         6.7507      0.668     10.099      0.000         5.405     8.096
+==============================================================================
+Omnibus:                        2.575   Durbin-Watson:                   1.802
+Prob(Omnibus):                  0.276   Jarque-Bera (JB):                1.618
+Skew:                          -0.313   Prob(JB):                        0.445
+Kurtosis:                       3.619   Cond. No.                     2.99e+03
+==============================================================================
+
+Warnings:
+[1] The condition number is large, 2.99e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+------------------------------
+
