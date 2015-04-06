@@ -127,7 +127,8 @@ def findSettings(oldSettings, oldFeatures, newFeatures):
 
     oldExposure = imf.settingsToExposure(oldShutter, oldGain)
 
-    newExposure = 25.8578 + 0.6773*oldExposure - 5.1841*oldMeanLum + 6.7507*newMeanLum
+    newExposure = 111.2148 + 0.6940*oldExposure - 2.7011*oldMeanLum + 2.6972*newMeanLum
+    newShutter, newGain = imf.exposureToSettings(newExposure)
 
     return newShutter, newGain
 

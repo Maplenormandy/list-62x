@@ -1,63 +1,30 @@
-mean_luminance_w_gain_shutter.p
-                            OLS Regression Results                            
-==============================================================================
-Dep. Variable:              Shutter 1   R-squared:                       0.843
-Model:                            OLS   Adj. R-squared:                  0.825
-Method:                 Least Squares   F-statistic:                     47.12
-Date:                Fri, 03 Apr 2015   Prob (F-statistic):           1.42e-16
-Time:                        17:56:52   Log-Likelihood:                -286.52
-No. Observations:                  50   AIC:                             585.0
-Df Residuals:                      44   BIC:                             596.5
-Df Model:                           5                                         
-==============================================================================
-                 coef    std err          t      P>|t|      [95.0% Conf. Int.]
-------------------------------------------------------------------------------
-const        -12.7630     83.017     -0.154      0.879      -180.073   154.547
-Shutter 0      0.8357      0.136      6.134      0.000         0.561     1.110
-Gain 0        -0.5643      1.477     -0.382      0.704        -3.541     2.413
-Gain 1         1.3838      1.817      0.762      0.450        -2.277     5.045
-Mean 0        -2.3354      0.395     -5.916      0.000        -3.131    -1.540
-Mean 1         2.7578      0.302      9.121      0.000         2.148     3.367
-==============================================================================
-Omnibus:                        6.655   Durbin-Watson:                   2.042
-Prob(Omnibus):                  0.036   Jarque-Bera (JB):                5.558
-Skew:                          -0.711   Prob(JB):                       0.0621
-Kurtosis:                       3.805   Cond. No.                     3.78e+03
-==============================================================================
-
-Warnings:
-[1] The condition number is large, 3.78e+03. This might indicate that there are
-strong multicollinearity or other numerical problems.
-
-------------------------------
-
 blur_luminance.p
                             OLS Regression Results                            
 ==============================================================================
-Dep. Variable:             Exposure 1   R-squared:                       0.702
-Model:                            OLS   Adj. R-squared:                  0.683
-Method:                 Least Squares   F-statistic:                     36.12
-Date:                Fri, 03 Apr 2015   Prob (F-statistic):           3.75e-12
-Time:                        17:56:52   Log-Likelihood:                -351.42
-No. Observations:                  50   AIC:                             710.8
-Df Residuals:                      46   BIC:                             718.5
+Dep. Variable:             Exposure 1   R-squared:                       0.680
+Model:                            OLS   Adj. R-squared:                  0.670
+Method:                 Least Squares   F-statistic:                     67.33
+Date:                Mon, 06 Apr 2015   Prob (F-statistic):           1.99e-23
+Time:                        14:44:03   Log-Likelihood:                -586.47
+No. Observations:                  99   AIC:                             1181.
+Df Residuals:                      95   BIC:                             1191.
 Df Model:                           3                                         
 ====================================================================================
                        coef    std err          t      P>|t|      [95.0% Conf. Int.]
 ------------------------------------------------------------------------------------
-const             -221.0576    222.277     -0.995      0.325      -668.477   226.362
-Exposure 0           0.6862      0.079      8.715      0.000         0.528     0.845
-Blur Luminance 0    -5.0883      1.636     -3.109      0.003        -8.382    -1.794
-Blur Luminance 1     8.0536      1.016      7.923      0.000         6.008    10.100
+const              -35.4155     91.247     -0.388      0.699      -216.565   145.734
+Exposure 0           0.7933      0.103      7.702      0.000         0.589     0.998
+Blur Luminance 0    -2.1544      0.459     -4.689      0.000        -3.067    -1.242
+Blur Luminance 1     2.8560      0.273     10.467      0.000         2.314     3.398
 ==============================================================================
-Omnibus:                        1.004   Durbin-Watson:                   1.653
-Prob(Omnibus):                  0.605   Jarque-Bera (JB):                0.483
-Skew:                          -0.222   Prob(JB):                        0.785
-Kurtosis:                       3.185   Cond. No.                     5.28e+03
+Omnibus:                        7.757   Durbin-Watson:                   1.917
+Prob(Omnibus):                  0.021   Jarque-Bera (JB):                8.079
+Skew:                          -0.494   Prob(JB):                       0.0176
+Kurtosis:                       3.992   Cond. No.                     4.65e+03
 ==============================================================================
 
 Warnings:
-[1] The condition number is large, 5.28e+03. This might indicate that there are
+[1] The condition number is large, 4.65e+03. This might indicate that there are
 strong multicollinearity or other numerical problems.
 
 ------------------------------
@@ -65,30 +32,30 @@ strong multicollinearity or other numerical problems.
 feature_luminance.p
                             OLS Regression Results                            
 ==============================================================================
-Dep. Variable:             Exposure 1   R-squared:                       0.689
-Model:                            OLS   Adj. R-squared:                  0.668
-Method:                 Least Squares   F-statistic:                     33.93
-Date:                Fri, 03 Apr 2015   Prob (F-statistic):           1.01e-11
-Time:                        17:56:52   Log-Likelihood:                -352.50
-No. Observations:                  50   AIC:                             713.0
-Df Residuals:                      46   BIC:                             720.7
+Dep. Variable:             Exposure 1   R-squared:                       0.679
+Model:                            OLS   Adj. R-squared:                  0.669
+Method:                 Least Squares   F-statistic:                     66.89
+Date:                Mon, 06 Apr 2015   Prob (F-statistic):           2.46e-23
+Time:                        14:44:03   Log-Likelihood:                -586.69
+No. Observations:                  99   AIC:                             1181.
+Df Residuals:                      95   BIC:                             1192.
 Df Model:                           3                                         
 =======================================================================================
                           coef    std err          t      P>|t|      [95.0% Conf. Int.]
 ---------------------------------------------------------------------------------------
-const                -180.6879    224.587     -0.805      0.425      -632.757   271.382
-Exposure 0              0.6834      0.080      8.498      0.000         0.522     0.845
-Feature Luminance 0    -5.6048      1.720     -3.259      0.002        -9.067    -2.143
-Feature Luminance 1     8.2760      1.084      7.635      0.000         6.094    10.458
+const                 -26.9260     90.798     -0.297      0.767      -207.183   153.331
+Exposure 0              0.7944      0.103      7.713      0.000         0.590     0.999
+Feature Luminance 0    -2.3442      0.476     -4.926      0.000        -3.289    -1.400
+Feature Luminance 1     2.9856      0.286     10.433      0.000         2.417     3.554
 ==============================================================================
-Omnibus:                        2.280   Durbin-Watson:                   1.600
-Prob(Omnibus):                  0.320   Jarque-Bera (JB):                1.421
-Skew:                          -0.367   Prob(JB):                        0.491
-Kurtosis:                       3.377   Cond. No.                     5.22e+03
+Omnibus:                        7.130   Durbin-Watson:                   1.903
+Prob(Omnibus):                  0.028   Jarque-Bera (JB):                7.441
+Skew:                          -0.451   Prob(JB):                       0.0242
+Kurtosis:                       3.995   Cond. No.                     4.62e+03
 ==============================================================================
 
 Warnings:
-[1] The condition number is large, 5.22e+03. This might indicate that there are
+[1] The condition number is large, 4.62e+03. This might indicate that there are
 strong multicollinearity or other numerical problems.
 
 ------------------------------
@@ -99,8 +66,8 @@ mean_background_luminance.p
 Dep. Variable:             Exposure 1   R-squared:                       0.770
 Model:                            OLS   Adj. R-squared:                  0.755
 Method:                 Least Squares   F-statistic:                     51.32
-Date:                Fri, 03 Apr 2015   Prob (F-statistic):           1.02e-14
-Time:                        17:56:52   Log-Likelihood:                -344.94
+Date:                Mon, 06 Apr 2015   Prob (F-statistic):           1.02e-14
+Time:                        14:44:03   Log-Likelihood:                -344.94
 No. Observations:                  50   AIC:                             697.9
 Df Residuals:                      46   BIC:                             705.5
 Df Model:                           3                                         
@@ -124,97 +91,130 @@ strong multicollinearity or other numerical problems.
 
 ------------------------------
 
-mean_foreground_luminance.p
+mean_Luminance_foreground_background.p
                             OLS Regression Results                            
 ==============================================================================
-Dep. Variable:             Exposure 1   R-squared:                       0.760
-Model:                            OLS   Adj. R-squared:                  0.744
-Method:                 Least Squares   F-statistic:                     48.49
-Date:                Fri, 03 Apr 2015   Prob (F-statistic):           2.75e-14
-Time:                        17:56:52   Log-Likelihood:                -346.03
-No. Observations:                  50   AIC:                             700.1
-Df Residuals:                      46   BIC:                             707.7
-Df Model:                           3                                         
-==================================================================================================
-                                     coef    std err          t      P>|t|      [95.0% Conf. Int.]
---------------------------------------------------------------------------------------------------
-const                             70.1767    128.910      0.544      0.589      -189.307   329.660
-Exposure 0                         0.6469      0.073      8.870      0.000         0.500     0.794
-Mean Foreground Illumination 0    -4.6182      1.001     -4.615      0.000        -6.633    -2.604
-Mean Foreground Illumination 1     6.0512      0.644      9.401      0.000         4.756     7.347
-==============================================================================
-Omnibus:                        0.391   Durbin-Watson:                   1.812
-Prob(Omnibus):                  0.822   Jarque-Bera (JB):                0.105
-Skew:                           0.108   Prob(JB):                        0.949
-Kurtosis:                       3.062   Cond. No.                     3.41e+03
-==============================================================================
-
-Warnings:
-[1] The condition number is large, 3.41e+03. This might indicate that there are
-strong multicollinearity or other numerical problems.
-
-------------------------------
-
-mean_foreground_background_luminance.p
-                            OLS Regression Results                            
-==============================================================================
-Dep. Variable:             Exposure 1   R-squared:                       0.782
-Model:                            OLS   Adj. R-squared:                  0.758
-Method:                 Least Squares   F-statistic:                     31.66
-Date:                Fri, 03 Apr 2015   Prob (F-statistic):           1.58e-13
-Time:                        17:56:52   Log-Likelihood:                -343.55
-No. Observations:                  50   AIC:                             699.1
-Df Residuals:                      44   BIC:                             710.6
+Dep. Variable:             Exposure 1   R-squared:                       0.778
+Model:                            OLS   Adj. R-squared:                  0.766
+Method:                 Least Squares   F-statistic:                     65.33
+Date:                Mon, 06 Apr 2015   Prob (F-statistic):           6.38e-29
+Time:                        14:44:03   Log-Likelihood:                -568.30
+No. Observations:                  99   AIC:                             1149.
+Df Residuals:                      93   BIC:                             1164.
 Df Model:                           5                                         
 ==================================================================================================
                                      coef    std err          t      P>|t|      [95.0% Conf. Int.]
 --------------------------------------------------------------------------------------------------
-const                             33.1850    126.970      0.261      0.795      -222.706   289.076
-Exposure 0                         0.6736      0.073      9.289      0.000         0.527     0.820
-Mean Foreground Illumination 0    -1.9733      1.815     -1.087      0.283        -5.632     1.685
-Mean BackGround Illumination 0    -3.1668      1.813     -1.747      0.088        -6.820     0.487
-Mean BackGround Illumination 1     3.9755      1.880      2.115      0.040         0.186     7.765
-Mean Foreground Illumination 1     2.7209      1.732      1.571      0.123        -0.769     6.211
+const                            -28.7503     72.584     -0.396      0.693      -172.888   115.387
+Exposure 0                         0.8374      0.095      8.815      0.000         0.649     1.026
+Mean Foreground Illumination 0     1.3506      0.571      2.366      0.020         0.217     2.484
+Mean BackGround Illumination 0    -3.5916      0.502     -7.157      0.000        -4.588    -2.595
+Mean BackGround Illumination 1     3.4056      0.597      5.701      0.000         2.219     4.592
+Mean Foreground Illumination 1    -0.6306      0.562     -1.121      0.265        -1.747     0.486
 ==============================================================================
-Omnibus:                        1.881   Durbin-Watson:                   1.818
-Prob(Omnibus):                  0.390   Jarque-Bera (JB):                1.034
-Skew:                          -0.259   Prob(JB):                        0.596
-Kurtosis:                       3.478   Cond. No.                     3.50e+03
+Omnibus:                       13.858   Durbin-Watson:                   2.089
+Prob(Omnibus):                  0.001   Jarque-Bera (JB):               15.283
+Skew:                          -0.829   Prob(JB):                     0.000480
+Kurtosis:                       3.979   Cond. No.                     4.55e+03
 ==============================================================================
 
 Warnings:
-[1] The condition number is large, 3.5e+03. This might indicate that there are
+[1] The condition number is large, 4.55e+03. This might indicate that there are
 strong multicollinearity or other numerical problems.
 
 ------------------------------
 
-mean_luminance.p
+mean_Luminance_w_contrast.p
                             OLS Regression Results                            
 ==============================================================================
-Dep. Variable:             Exposure 1   R-squared:                       0.781
-Model:                            OLS   Adj. R-squared:                  0.766
-Method:                 Least Squares   F-statistic:                     54.60
-Date:                Fri, 03 Apr 2015   Prob (F-statistic):           3.39e-15
-Time:                        17:56:52   Log-Likelihood:                -343.74
-No. Observations:                  50   AIC:                             695.5
-Df Residuals:                      46   BIC:                             703.1
+Dep. Variable:             Exposure 1   R-squared:                       0.805
+Model:                            OLS   Adj. R-squared:                  0.795
+Method:                 Least Squares   F-statistic:                     76.84
+Date:                Mon, 06 Apr 2015   Prob (F-statistic):           1.70e-31
+Time:                        14:44:03   Log-Likelihood:                -561.94
+No. Observations:                  99   AIC:                             1136.
+Df Residuals:                      93   BIC:                             1151.
+Df Model:                           5                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [95.0% Conf. Int.]
+------------------------------------------------------------------------------
+const       1049.8772    290.760      3.611      0.000       472.486  1627.269
+Exposure 0     0.8746      0.089      9.871      0.000         0.699     1.051
+Mean 0        -3.3529      0.303    -11.081      0.000        -3.954    -2.752
+Mean 1         3.3968      0.234     14.503      0.000         2.932     3.862
+Contrast 0    -3.5185      1.317     -2.672      0.009        -6.134    -0.903
+Contrast 1    -0.7937      0.245     -3.245      0.002        -1.279    -0.308
+==============================================================================
+Omnibus:                       14.569   Durbin-Watson:                   2.190
+Prob(Omnibus):                  0.001   Jarque-Bera (JB):               16.140
+Skew:                          -0.875   Prob(JB):                     0.000313
+Kurtosis:                       3.923   Cond. No.                     2.24e+04
+==============================================================================
+
+Warnings:
+[1] The condition number is large, 2.24e+04. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+------------------------------
+
+mean_Luminance_foreground.p
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:             Exposure 1   R-squared:                       0.656
+Model:                            OLS   Adj. R-squared:                  0.645
+Method:                 Least Squares   F-statistic:                     60.47
+Date:                Mon, 06 Apr 2015   Prob (F-statistic):           5.93e-22
+Time:                        14:44:03   Log-Likelihood:                -590.03
+No. Observations:                  99   AIC:                             1188.
+Df Residuals:                      95   BIC:                             1198.
+Df Model:                           3                                         
+==================================================================================================
+                                     coef    std err          t      P>|t|      [95.0% Conf. Int.]
+--------------------------------------------------------------------------------------------------
+const                             58.0255     88.174      0.658      0.512      -117.023   233.074
+Exposure 0                         0.7474      0.116      6.454      0.000         0.518     0.977
+Mean Foreground Illumination 0    -1.9627      0.411     -4.772      0.000        -2.779    -1.146
+Mean Foreground Illumination 1     2.2377      0.229      9.773      0.000         1.783     2.692
+==============================================================================
+Omnibus:                       12.363   Durbin-Watson:                   2.143
+Prob(Omnibus):                  0.002   Jarque-Bera (JB):               12.960
+Skew:                          -0.832   Prob(JB):                      0.00153
+Kurtosis:                       3.609   Cond. No.                     4.29e+03
+==============================================================================
+
+Warnings:
+[1] The condition number is large, 4.29e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+
+------------------------------
+
+mean_Luminance_no_contrast.p
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:             Exposure 1   R-squared:                       0.748
+Model:                            OLS   Adj. R-squared:                  0.740
+Method:                 Least Squares   F-statistic:                     93.81
+Date:                Mon, 06 Apr 2015   Prob (F-statistic):           2.69e-28
+Time:                        14:44:03   Log-Likelihood:                -574.74
+No. Observations:                  99   AIC:                             1157.
+Df Residuals:                      95   BIC:                             1168.
 Df Model:                           3                                         
 ==============================================================================
                  coef    std err          t      P>|t|      [95.0% Conf. Int.]
 ------------------------------------------------------------------------------
-const         25.8578    107.855      0.240      0.812      -191.243   242.958
-Exposure 0     0.6773      0.071      9.552      0.000         0.535     0.820
-Mean 0        -5.1841      0.960     -5.399      0.000        -7.117    -3.251
-Mean 1         6.7507      0.668     10.099      0.000         5.405     8.096
+const        111.2148     60.912      1.826      0.071        -9.710   232.140
+Exposure 0     0.6940      0.089      7.789      0.000         0.517     0.871
+Mean 0        -2.7011      0.310     -8.700      0.000        -3.317    -2.085
+Mean 1         2.6972      0.211     12.797      0.000         2.279     3.116
 ==============================================================================
-Omnibus:                        2.575   Durbin-Watson:                   1.802
-Prob(Omnibus):                  0.276   Jarque-Bera (JB):                1.618
-Skew:                          -0.313   Prob(JB):                        0.445
-Kurtosis:                       3.619   Cond. No.                     2.99e+03
+Omnibus:                       14.656   Durbin-Watson:                   2.155
+Prob(Omnibus):                  0.001   Jarque-Bera (JB):               16.773
+Skew:                          -0.835   Prob(JB):                     0.000228
+Kurtosis:                       4.131   Cond. No.                     3.44e+03
 ==============================================================================
 
 Warnings:
-[1] The condition number is large, 2.99e+03. This might indicate that there are
+[1] The condition number is large, 3.44e+03. This might indicate that there are
 strong multicollinearity or other numerical problems.
 
 ------------------------------
