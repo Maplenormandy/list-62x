@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from statsmodels.stats.weightstats import ttost_paired
 
-data = pd.read_csv(open('2015-04-06bldg33_data.csv'), index_col='Frame')
+data = pd.read_csv(open('stata2015-04-12_2_rawdata.csv'), index_col='Frame')
 
 for t in data.index:
     if int(data.loc[t, 'Baseline']) == 0:
@@ -14,6 +14,7 @@ for t in data.index:
         data.loc[t, 'STF Baseline'] = data.loc[t, 'Succesfully Tracked Features 1']
         data.loc[t, 'STF Experiment'] = data.loc[t, 'Succesfully Tracked Features 0']
 
+print data['STF Experiment']
 pvalue, stats1, stats2 = ttost_paired(data['STF Experiment'], data['STF Baseline'], 0, 10000)
 
 print pvalue
