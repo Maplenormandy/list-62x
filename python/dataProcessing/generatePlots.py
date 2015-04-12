@@ -33,6 +33,8 @@ plt.legend(loc='upper right')
 plt.draw()
 
 plt.figure()
-plt.hist(data['STF Experiment'] - data['STF Baseline'], alpha = 0.5, bins=30, label="experiment-baseline", color="red")
+plt.hist(data['STF Experiment'] - data['STF Baseline'], alpha = 10, bins=30, label="experiment-baseline", color="red")
 plt.legend(loc='upper right')
 plt.show()
+
+for a in data
