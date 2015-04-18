@@ -33,13 +33,20 @@ def featureLuminance(grayImg, kp):
         avg += grayImg[y,x]*1.0
     return avg/len(kp)
 def gaussianBlurfeatureLuminance(grayimg, kp):
-	avg = 0
-	blurImage = cv2.GaussianBlur(grayimg, (0,0), 5)
-	for i in range(len(kp)):
-		x = int(kp[i].pt[0]+.5)
-		y = int(kp[i].pt[1]+.5)
-		avg +=blurImage[y,x]*1.0
-	return avg/len(kp)
+    avg = 0
+    if len(kp) > 0:
+        blurImage = cv2.GaussianBlur(grayimg, (0,0), 5)
+        for i in range(len(kp)):
+            x = int(kp[i].pt[0]+.5)
+            y = int(kp[i].pt[1]+.5)
+            avg +=blurImage[y,x]*1.0
+        return avg/len(kp)
+    else:
+        lum = meanLuminance(grayimg)
+        if lum > 128:
+            return 255.0
+        else:
+            return 0.0
 
 
 def settingsToExposure(shutter, gain):

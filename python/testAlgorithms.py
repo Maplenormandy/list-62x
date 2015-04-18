@@ -8,6 +8,8 @@ from multiprocessing import Process, Queue
 from Queue import Empty
 import random
 import imageFeatures as imf
+import pickle
+from sklearn import gaussian_process
 
 """
 # This script collects data
@@ -117,7 +119,7 @@ def setCap0Auto(x):
 def setCap1Auto(x):
     cap1.set(21,x)
 
-def findSettings(oldSettings, oldFeatures, newFeatures):
+def findMeanLumSettings(oldSettings, oldFeatures, newFeatures):
     oldShutter, oldGain = oldSettings
     newShutter = 1.0
     newGain = 16.0
@@ -131,6 +133,30 @@ def findSettings(oldSettings, oldFeatures, newFeatures):
     newShutter, newGain = imf.exposureToSettings(newExposure)
 
     return newShutter, newGain
+
+def findLinearFeatureLumSettings(oldSettings, oldFeatures, newFeatures):
+    oldShutter, oldGain = oldSettings
+
+    oldBlurLum = oldFeatures
+    newBlurLum = newFeatures
+
+    oldExposure = imf.settingsToExposure(oldShutter, oldGain)
+
+    newExposure = -35.4155 + 0.7933*oldExposure - 2.1544*oldBlurLum + 2.856*newBlurLum
+    newShutter, newGain = imf.exposureToSettings(newExposure)
+
+    return np.clip(newShutter,1.0,531.0), np.clip(newGain,16.0,64.0)
+
+
+gp = pickle.load(open('gp.p','r'))
+
+#params = ['Exposure 0', 'Contrast 0', 'Contrast 1', 'Blur Luminance 0', 'Blur Luminance 1', 'Mean Foreground Illumination 0', 'Mean BackGround Illumination 0', 'Mean Foreground Illumination 1', 'Mean BackGround Illumination 1']
+def findGPSettings(params):
+    newExposure = gp.predict(params)
+    newShutter, newGain = imf.exposureToSettings(newExposure)
+
+    return np.clip(newShutter,1.0,531.0), np.clip(newGain,16.0,64.0)
+
 
 def usableMatch(matches, keypoints, keypointsBaseline):
 	correctMatches = []
@@ -175,6 +201,8 @@ resetRun = False
 index_params = dict(algorithm = 0, trees = 5)
 search_params = dict(checks=50)
 
+surf = cv2.SURF()
+
 def surfDetectAndMatch(name, q, dq):
     surf = cv2.SURF()
     flann = cv2.FlannBasedMatcher(index_params, search_params)
@@ -196,10 +224,17 @@ def surfDetectAndMatch(name, q, dq):
         if newFrame != None:
             if newFrame == False:
                 dq.close()
+                kp = None
                 print name + ": Done"
                 break
 
-            kp, desc = surf.detectAndCompute(newFrame[1], None)
+            if newFrame[2] == False:
+                kp, desc = surf.detectAndCompute(newFrame[1], None)
+            else:
+                kp_temp, desc = newFrame[1]
+                kp = [cv2.KeyPoint(x=p[0][0], y=p[0][1], _size=p[1], _angle=p[2], _response=p[3],
+                    _octave=p[4], _class_id=p[5]) for p in kp_temp]
+
 
             if oldFrame != None:
                 if newFrame[0] == oldFrame[0]:
@@ -222,6 +257,8 @@ def surfDetectAndMatch(name, q, dq):
             oldDesc = desc
 
 
+oldParams = None
+collectingGP = True
 
 if cap0.isOpened() and cap1.isOpened():
     q = Queue()
@@ -281,16 +318,34 @@ if cap0.isOpened() and cap1.isOpened():
                 gray0 = cv2.cvtColor(frame0, cv2.COLOR_BGR2GRAY)
                 gray1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)
 
-                q0.put((t, gray0))
-                q1.put((t, gray1))
-
                 # Calculate image features
                 if expCam0:
+                    kp, desc = surf.detectAndCompute(gray0, None)
+                    kp_temp = [(p.pt, p.size, p.angle, p.response, p.octave, p.class_id) for p in kp]
+                    q0.put((t, (kp_temp, desc), True))
+                    q1.put((t, gray1, False))
+
                     meanLum = imf.meanLuminance(gray0)
+                    blurLum = imf.gaussianBlurfeatureLuminance(gray0, kp)
+                    meanFg, meanBg = imf.weightedLuminance(gray0)
+                    contrast = imf.contrast(gray0)
                     camSettings = (cap0.get(15), cap0.get(14))
+
                 else:
+                    kp, desc = surf.detectAndCompute(gray1, None)
+                    kp_temp = [(p.pt, p.size, p.angle, p.response, p.octave, p.class_id) for p in kp]
+                    q1.put((t, (kp_temp, desc), True))
+                    q0.put((t, gray0, False))
+
                     meanLum = imf.meanLuminance(gray1)
+                    blurLum = imf.gaussianBlurfeatureLuminance(gray1, kp)
+                    meanFg, meanBg = imf.weightedLuminance(gray1)
+                    contrast = imf.contrast(gray1)
                     camSettings = (cap1.get(15), cap1.get(14))
+
+                newParams = (imf.settingsToExposure(camSettings[0], camSettings[1]),
+                    contrast, blurLum, meanFg, meanBg)
+
 
                 if oldGray0 != None:
 
@@ -314,8 +369,18 @@ if cap0.isOpened() and cap1.isOpened():
                     q.put((imgname0, frame0))
                     q.put((imgname1, frame1))
 
+                    if collectingGP:
+                        data.loc[t, 'Experimental Method'] = 'GP'
+                        params = np.array([oldParams[0],
+                            oldParams[1], newParams[1],
+                            oldParams[2], newParams[2],
+                            oldParams[3], oldParams[4], newParams[3], newParams[4]])
+                        newShutter, newGain = findGPSettings(params)
+                    else:
+                        data.loc[t, 'Experimental Method'] = 'linear_blur'
+                        newShutter, newGain = findLinearFeatureLumSettings(oldCamSettings, oldBlurLum, blurLum)
 
-                    newShutter, newGain = findSettings(oldCamSettings, oldMeanLum, meanLum)
+
 
                     # Determine new image settings
                     if expCam0:
@@ -330,7 +395,9 @@ if cap0.isOpened() and cap1.isOpened():
                 oldGray0 = gray0
                 oldGray1 = gray1
 
-                oldMeanLum = meanLum
+                oldParams = newParams
+
+                oldBlurLum = blurLum
                 oldCamSettings = camSettings
 
                 i = 0
@@ -338,6 +405,8 @@ if cap0.isOpened() and cap1.isOpened():
             cv2.putText(disp, "Frame: " + str(t-startT), (50,50),
                     cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255))
             cv2.putText(disp, "Baseline: " + ("1" if expCam0 else "0"), (50,80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255))
+            cv2.putText(disp, "GP" if collectingGP else "linear_blur", (50,110),
                     cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255))
             cv2.imshow('frame', disp)
 
@@ -354,12 +423,16 @@ if cap0.isOpened() and cap1.isOpened():
         elif key == ord('w'):
             expCam0 = random.choice((True, False))
             resetRun = True
+        elif key == ord('e'):
+            resetRun = True
         elif key == ord('r'):
             expCam0 = not expCam0
             resetRun = True
         elif key == ord('s'):
             writing = False
             runNum += 1
+        elif key == ord('g'):
+            collectingGP = not collectingGP
 
         if resetRun:
             resetRun = False
@@ -367,6 +440,7 @@ if cap0.isOpened() and cap1.isOpened():
             startT = t
             oldGray0 = None
             oldGray1 = None
+            oldParams = None
             i = 0
 
             # To start off, set auto-exposure
@@ -385,9 +459,9 @@ dq0.close()
 dq1.close()
 q0.close()
 q1.close()
-p.join()
-p0.join()
-p1.join()
+#p.join()
+#p0.join()
+#p1.join()
 
 if len(data) > 0:
     data.to_csv(foldername + '/' + shortname + '_rawdata.csv')
