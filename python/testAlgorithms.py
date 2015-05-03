@@ -148,7 +148,7 @@ def findLinearFeatureLumSettings(oldSettings, oldFeatures, newFeatures):
     return np.clip(newShutter,1.0,531.0), np.clip(newGain,16.0,64.0)
 
 
-gp = pickle.load(open('gp.p','r'))
+gp = pickle.load(open('gp_mean.p','r'))
 
 #params = ['Exposure 0', 'Contrast 0', 'Contrast 1', 'Blur Luminance 0', 'Blur Luminance 1', 'Mean Foreground Illumination 0', 'Mean BackGround Illumination 0', 'Mean Foreground Illumination 1', 'Mean BackGround Illumination 1']
 def findGPSettings(params):
@@ -259,6 +259,7 @@ def surfDetectAndMatch(name, q, dq):
 
 oldParams = None
 collectingGP = True
+oldMeanLum = None
 
 if cap0.isOpened() and cap1.isOpened():
     q = Queue()
@@ -371,10 +372,7 @@ if cap0.isOpened() and cap1.isOpened():
 
                     if collectingGP:
                         data.loc[t, 'Experimental Method'] = 'GP'
-                        params = np.array([oldParams[0],
-                            oldParams[1], newParams[1],
-                            oldParams[2], newParams[2],
-                            oldParams[3], oldParams[4], newParams[3], newParams[4]])
+                        params = np.array([oldParams[0], oldMeanLum, meanLum])
                         newShutter, newGain = findGPSettings(params)
                     else:
                         data.loc[t, 'Experimental Method'] = 'linear_blur'
@@ -399,6 +397,7 @@ if cap0.isOpened() and cap1.isOpened():
 
                 oldBlurLum = blurLum
                 oldCamSettings = camSettings
+                oldMeanLum = meanLum
 
                 i = 0
 
