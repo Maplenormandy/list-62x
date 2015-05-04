@@ -1,10 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 from statsmodels.stats.weightstats import ttost_paired
 
-data = pd.read_csv(open('stata2015-04-12_2_rawdata.csv'), index_col='Frame')
+data = pd.read_csv(open('combined_data.csv'))
 
 for t in data.index:
     if int(data.loc[t, 'Baseline']) == 0:
@@ -14,7 +15,6 @@ for t in data.index:
         data.loc[t, 'STF Baseline'] = data.loc[t, 'Succesfully Tracked Features 1']
         data.loc[t, 'STF Experiment'] = data.loc[t, 'Succesfully Tracked Features 0']
 
-print data['STF Experiment']
 pvalue, stats1, stats2 = ttost_paired(data['STF Experiment'], data['STF Baseline'], 0, 10000)
 
 print pvalue
@@ -26,15 +26,17 @@ plt.scatter(data.index, data['STF Experiment'], color="green", label='experiment
 plt.legend(loc='upper right')
 plt.draw()
 
+dataMax = max(data['STF Baseline'].max(), data['STF Experiment'].max())
+bins = np.linspace(0, dataMax)
+
 plt.figure()
-plt.hist(data['STF Baseline'], alpha = 0.5, bins=30, label="baseline")
-plt.hist(data['STF Experiment'], alpha = 0.5, bins=30, label="experiment")
+plt.hist(data['STF Baseline'], alpha = 0.5, bins=bins, label="baseline")
+plt.hist(data['STF Experiment'], alpha = 0.5, bins=bins, label="experiment")
 plt.legend(loc='upper right')
 plt.draw()
 
 plt.figure()
-plt.hist(data['STF Experiment'] - data['STF Baseline'], alpha = 10, bins=30, label="experiment-baseline", color="red")
-plt.legend(loc='upper right')
+plt.hist(data['STF Experiment'] - data['STF Baseline'], bins=30, color="red")
+plt.xlabel('Experiment - Baseline')
 plt.show()
 
-for a in data
