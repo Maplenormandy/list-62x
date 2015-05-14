@@ -1,7 +1,9 @@
 list-62x
 ========
 
-Light Invariant Stable Features auto camera setting correction algorithm, for MIT 16.62x Fall 2014 / Spring 2015
+Light Invariant Stable Features auto camera setting correction algorithm, for MIT 16.62x Fall 2014 / Spring 2015.
+
+Please contact maplenormandy@gmail.com and aaron.phs@gmail.com for information on how to get the data associated with this project.
 
 Note on installation. Make sure you're using OpenCV 2.4.9
 
